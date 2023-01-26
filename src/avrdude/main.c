@@ -426,7 +426,7 @@ static int cleanup_main(int status)
 /*
  * main routine
  */
-int avrdude_main(int argc, char * argv [])
+int main(int argc, char * argv [])
 {
   int              rc;          /* general return code checking */
   int              exitrc;      /* exit code for main() */

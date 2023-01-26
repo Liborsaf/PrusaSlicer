@@ -11,4 +11,5 @@ automake -a -c
 ./configure --prefix=/usr --sysconfdir=/etc
 
 make
-make install
+
+# make install

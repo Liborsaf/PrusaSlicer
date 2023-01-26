@@ -262,7 +262,7 @@ static int serbb_open(PROGRAMMER *pgm, char *port)
 	if (bitbang_check_prerequisites(pgm) < 0)
 	    return -1;
 
-	hComPort = CreateFileA(port, GENERIC_READ | GENERIC_WRITE, 0, NULL,
+	hComPort = CreateFile(port, GENERIC_READ | GENERIC_WRITE, 0, NULL,
                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (hComPort == INVALID_HANDLE_VALUE) {
@@ -308,8 +308,8 @@ static int serbb_open(PROGRAMMER *pgm, char *port)
                         progname, port);
                 return -1;
 	}
-        avrdude_message(MSG_DEBUG, "%s: ser_open(): opened comm port \"%s\", handle %p\n",
-                        progname, port, (void *)hComPort);
+        avrdude_message(MSG_DEBUG, "%s: ser_open(): opened comm port \"%s\", handle 0x%x\n",
+                        progname, port, (int)hComPort);
 
         pgm->fd.pfd = (void *)hComPort;
 
@@ -326,8 +326,8 @@ static void serbb_close(PROGRAMMER *pgm)
 		pgm->setpin(pgm, PIN_AVR_RESET, 1);
 		CloseHandle (hComPort);
 	}
-        avrdude_message(MSG_DEBUG, "%s: ser_close(): closed comm port handle %p\n",
-                                progname, (void *)hComPort);
+        avrdude_message(MSG_DEBUG, "%s: ser_close(): closed comm port handle 0x%x\n",
+                                progname, (int)hComPort);
 
 	hComPort = INVALID_HANDLE_VALUE;
 }

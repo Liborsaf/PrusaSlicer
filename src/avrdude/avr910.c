@@ -32,11 +32,8 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <sys/time.h>
 #include <unistd.h>
-
-#if !defined(WIN32NATIVE)
-#  include <sys/time.h>
-#endif
 
 #include "avrdude.h"
 #include "libavrdude.h"
@@ -676,7 +673,7 @@ static int avr910_paged_load(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
     avr910_set_addr(pgm, addr / rd_size);
 
     while (addr < max_addr) {
-      if ((max_addr - addr) < (unsigned)blocksize) {
+      if ((max_addr - addr) < blocksize) {
         blocksize = max_addr - addr;
       }
       cmd[1] = (blocksize >> 8) & 0xff;

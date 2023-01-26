@@ -85,10 +85,9 @@ static void wiring_setup(PROGRAMMER * pgm)
    * Now prepare our data
    */
   if ((mycookie = malloc(sizeof(struct wiringpdata))) == 0) {
-    // avrdude_message(MSG_INFO, "%s: wiring_setup(): Out of memory allocating private data\n",
-    //                 progname);
-    // exit(1);
-    avrdude_oom("wiring_setup(): Out of memory allocating private data\n");
+    avrdude_message(MSG_INFO, "%s: wiring_setup(): Out of memory allocating private data\n",
+                    progname);
+    exit(1);
   }
   memset(mycookie, 0, sizeof(struct wiringpdata));
   WIRINGPDATA(mycookie)->snoozetime = 0;
@@ -152,9 +151,7 @@ static int wiring_open(PROGRAMMER * pgm, char * port)
 
   strcpy(pgm->port, port);
   pinfo.baud = pgm->baudrate ? pgm->baudrate: 115200;
-  if (serial_open(port, pinfo, &pgm->fd) < 0) {
-    return -1;
-  }
+  serial_open(port, pinfo, &pgm->fd);
 
   /* If we have a snoozetime, then we wait and do NOT toggle DTR/RTS */
 
@@ -192,10 +189,8 @@ static int wiring_open(PROGRAMMER * pgm, char * port)
   /* drain any extraneous input */
   stk500v2_drain(pgm, 0);
 
-  if (stk500v2_getsync(pgm) < 0) {
-    serial_close(&pgm->fd);
+  if (stk500v2_getsync(pgm) < 0)
     return -1;
-  }
 
   return 0;
 }

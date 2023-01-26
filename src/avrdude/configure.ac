@@ -23,7 +23,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(avrdude, 6.3-20160220, avrdude-dev@nongnu.org)
+AC_INIT(avrdude, 6.3-20171130, avrdude-dev@nongnu.org)
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -214,7 +214,7 @@ AC_HEADER_TIME
 AC_CHECK_LIB([ws2_32], [puts])
 
 # Checks for library functions.
-AC_CHECK_FUNCS([memset select strcasecmp strdup strerror strncasecmp strtol strtoul gettimeofday usleep getaddrinfo])
+AC_CHECK_FUNCS([memset select strcasecmp strdup strerror strncasecmp strtol strtoul gettimeofday usleep])
 
 AC_MSG_CHECKING([for a Win32 HID libray])
 SAVED_LIBS="${LIBS}"

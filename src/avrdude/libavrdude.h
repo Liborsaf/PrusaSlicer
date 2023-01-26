@@ -41,16 +41,6 @@ typedef unsigned long pinmask_t;
 #endif
 
 
-// PATH_MAX is used throughout avrdude for various purposes.
-// It is problematic though as it may or may not be defined on various systems
-// and even when it is, it tends to be somewhat arbitrary.
-// So instead we just define a value here that should be fine in most cases.
-#ifdef PATH_MAX
-#undef PATH_MAX
-#endif
-#define PATH_MAX 4096
-
-
 /* formerly lists.h */
 
 /*----------------------------------------------------------------------
@@ -209,6 +199,7 @@ typedef struct opcode {
 #define AVRPART_WRITE          0x0400  /* at least one write operation specified */
 #define AVRPART_HAS_TPI        0x0800  /* part has TPI i/f rather than ISP (ATtiny4/5/9/10) */
 #define AVRPART_IS_AT90S1200   0x1000  /* part is an AT90S1200 (needs special treatment) */
+#define AVRPART_HAS_UPDI       0x2000  /* part has UPDI i/f (AVR8X) */
 
 #define AVR_DESCLEN 64
 #define AVR_IDLEN   32
@@ -274,6 +265,7 @@ typedef struct avrpart {
   unsigned short eecr;              /* JTAC ICE mkII XML file parameter */
   unsigned int mcu_base;            /* Base address of MCU control block in ATxmega devices */
   unsigned int nvm_base;            /* Base address of NVM controller in ATxmega devices */
+  unsigned int ocd_base;            /* Base address of OCD module in AVR8X/UPDI devices */
   int           ocdrev;             /* OCD revision (JTAGICE3 parameter, from AS6 XML files) */
 
   OPCODE      * op[AVR_OP_MAX];     /* opcodes */
@@ -687,7 +679,6 @@ typedef struct programmer_t {
   int  (*parseextparams) (struct programmer_t * pgm, LISTID xparams);
   void (*setup)          (struct programmer_t * pgm);
   void (*teardown)       (struct programmer_t * pgm);
-  void (*set_upload_size)(struct programmer_t * pgm, int size);
   char config_file[PATH_MAX]; /* config file where defined */
   int  lineno;                /* config file line number */
   void *cookie;		      /* for private use by the programmer */
@@ -732,16 +723,6 @@ typedef void (*FP_UpdateProgress)(int percent, double etime, char *hdr);
 extern struct avrpart parts[];
 
 extern FP_UpdateProgress update_progress;
-
-extern bool cancel_flag;
-#define RETURN_IF_CANCEL() \
-  do { \
-    if (cancel_flag) { \
-      avrdude_message(MSG_INFO, "avrdude: %s(): Cancelled, exiting...\n", __func__); \
-      return -99; \
-    } \
-  } while (0)
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -820,10 +801,8 @@ extern "C" {
 
 char * fmtstr(FILEFMT format);
 
-FILE *fopen_utf8(const char *filename, const char *mode);
-
 int fileio(int op, char * filename, FILEFMT format,
-           struct avrpart * p, char * memtype, int size, unsigned section);
+           struct avrpart * p, char * memtype, int size);
 
 #ifdef __cplusplus
 }
@@ -872,7 +851,6 @@ enum updateflags {
 typedef struct update_t {
   char * memtype;
   int    op;
-  unsigned section;
   char * filename;
   int    format;
 } UPDATE;
@@ -884,7 +862,7 @@ extern "C" {
 extern UPDATE * parse_op(char * s);
 extern UPDATE * dup_update(UPDATE * upd);
 extern UPDATE * new_update(int op, char * memtype, int filefmt,
-			   char * filename, unsigned section);
+			   char * filename);
 extern void free_update(UPDATE * upd);
 extern int do_op(PROGRAMMER * pgm, struct avrpart * p, UPDATE * upd,
 		 enum updateflags flags);
@@ -941,36 +919,28 @@ int init_config(void);
 void cleanup_config(void);
 
 int read_config(const char * file);
-int read_config_builtin();
 
 #ifdef __cplusplus
 }
 #endif
 
-// Header file for alloca()
-#if defined(WIN32NATIVE)
-#  include <malloc.h>
-#else
-#  include <alloca.h>
-#endif
-
 
 /* formerly confwin.h */
 
-// #if defined(WIN32NATIVE)
+#if defined(WIN32NATIVE)
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// void win_sys_config_set(char sys_config[PATH_MAX]);
-// void win_usr_config_set(char usr_config[PATH_MAX]);
+void win_sys_config_set(char sys_config[PATH_MAX]);
+void win_usr_config_set(char usr_config[PATH_MAX]);
 
-// #ifdef __cplusplus
-// }
-// #endif
+#ifdef __cplusplus
+}
+#endif
 
-// #endif  /* WIN32NATIVE */
+#endif  /* WIN32NATIVE */
 
 
 #endif  /* libavrdude_h */

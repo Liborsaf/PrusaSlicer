@@ -36,9 +36,8 @@ OPCODE * avr_new_opcode(void)
 
   m = (OPCODE *)malloc(sizeof(*m));
   if (m == NULL) {
-    // avrdude_message(MSG_INFO, "avr_new_opcode(): out of memory\n");
-    // exit(1);
-    avrdude_oom("avr_new_opcode(): out of memory\n");
+    avrdude_message(MSG_INFO, "avr_new_opcode(): out of memory\n");
+    exit(1);
   }
 
   memset(m, 0, sizeof(*m));
@@ -57,9 +56,8 @@ static OPCODE * avr_dup_opcode(OPCODE * op)
 
   m = (OPCODE *)malloc(sizeof(*m));
   if (m == NULL) {
-    // avrdude_message(MSG_INFO, "avr_dup_opcode(): out of memory\n");
-    // exit(1);
-    avrdude_oom("avr_dup_opcode(): out of memory\n");
+    avrdude_message(MSG_INFO, "avr_dup_opcode(): out of memory\n");
+    exit(1);
   }
 
   memcpy(m, op, sizeof(*m));
@@ -251,9 +249,8 @@ AVRMEM * avr_new_memtype(void)
 
   m = (AVRMEM *)malloc(sizeof(*m));
   if (m == NULL) {
-    // avrdude_message(MSG_INFO, "avr_new_memtype(): out of memory\n");
-    // exit(1);
-    avrdude_oom("avr_new_memtype(): out of memory\n");
+    avrdude_message(MSG_INFO, "avr_new_memtype(): out of memory\n");
+    exit(1);
   }
 
   memset(m, 0, sizeof(*m));
@@ -303,10 +300,9 @@ AVRMEM * avr_dup_mem(AVRMEM * m)
   if (m->buf != NULL) {
     n->buf = (unsigned char *)malloc(n->size);
     if (n->buf == NULL) {
-      // avrdude_message(MSG_INFO, "avr_dup_mem(): out of memory (memsize=%d)\n",
-      //                 n->size);
-      // exit(1);
-      avrdude_oom("avr_dup_mem(): out of memory");
+      avrdude_message(MSG_INFO, "avr_dup_mem(): out of memory (memsize=%d)\n",
+                      n->size);
+      exit(1);
     }
     memcpy(n->buf, m->buf, n->size);
   }
@@ -314,10 +310,9 @@ AVRMEM * avr_dup_mem(AVRMEM * m)
   if (m->tags != NULL) {
     n->tags = (unsigned char *)malloc(n->size);
     if (n->tags == NULL) {
-      // avrdude_message(MSG_INFO, "avr_dup_mem(): out of memory (memsize=%d)\n",
-      //                 n->size);
-      // exit(1);
-      avrdude_oom("avr_dup_mem(): out of memory");
+      avrdude_message(MSG_INFO, "avr_dup_mem(): out of memory (memsize=%d)\n",
+                      n->size);
+      exit(1);
     }
     memcpy(n->tags, m->tags, n->size);
   }
@@ -358,7 +353,7 @@ AVRMEM * avr_locate_mem(AVRPART * p, char * desc)
   int matches;
   int l;
 
-  l = (int)strlen(desc);
+  l = strlen(desc);
   matches = 0;
   match = NULL;
   for (ln=lfirst(p->mem); ln; ln=lnext(ln)) {
@@ -383,7 +378,7 @@ void avr_mem_display(const char * prefix, FILE * f, AVRMEM * m, int type,
   char * optr;
 
   if (m == NULL) {
-      avrdude_message(MSG_INFO,
+      fprintf(f,
               "%s                       Block Poll               Page                       Polled\n"
               "%sMemory Type Mode Delay Size  Indx Paged  Size   Size #Pages MinW  MaxW   ReadBack\n"
               "%s----------- ---- ----- ----- ---- ------ ------ ---- ------ ----- ----- ---------\n",
@@ -391,13 +386,13 @@ void avr_mem_display(const char * prefix, FILE * f, AVRMEM * m, int type,
   }
   else {
     if (verbose > 2) {
-      avrdude_message(MSG_INFO,
+      fprintf(f,
               "%s                       Block Poll               Page                       Polled\n"
               "%sMemory Type Mode Delay Size  Indx Paged  Size   Size #Pages MinW  MaxW   ReadBack\n"
               "%s----------- ---- ----- ----- ---- ------ ------ ---- ------ ----- ----- ---------\n",
               prefix, prefix, prefix);
     }
-    avrdude_message(MSG_INFO,
+    fprintf(f,
             "%s%-11s %4d %5d %5d %4d %-6s %6d %4d %6d %5d %5d 0x%02x 0x%02x\n",
             prefix, m->desc, m->mode, m->delay, m->blocksize, m->pollindex,
             m->paged ? "yes" : "no",
@@ -420,7 +415,7 @@ void avr_mem_display(const char * prefix, FILE * f, AVRMEM * m, int type,
               optr = avr_op_str(i);
             else
               optr = " ";
-          avrdude_message(MSG_INFO,
+          fprintf(f,
                   "%s    %-11s  %8d  %8s  %5d  %5d\n",
                   prefix, optr, j,
                   bittype(m->op[i]->bit[j].type),
@@ -446,9 +441,8 @@ AVRPART * avr_new_part(void)
 
   p = (AVRPART *)malloc(sizeof(AVRPART));
   if (p == NULL) {
-    // avrdude_message(MSG_INFO, "new_part(): out of memory\n");
-    // exit(1);
-    avrdude_oom("new_part(): out of memory\n");
+    avrdude_message(MSG_INFO, "new_part(): out of memory\n");
+    exit(1);
   }
 
   memset(p, 0, sizeof(*p));
@@ -626,7 +620,7 @@ void avr_display(FILE * f, AVRPART * p, const char * prefix, int verbose)
   LNODEID ln;
   AVRMEM * m;
 
-  avrdude_message(MSG_INFO,
+  fprintf(f,
           "%sAVR Part                      : %s\n"
           "%sChip Erase delay              : %d us\n"
           "%sPAGEL                         : P%02X\n"
@@ -662,7 +656,7 @@ void avr_display(FILE * f, AVRPART * p, const char * prefix, int verbose)
           prefix);
 
   px = prefix;
-  i = (int)strlen(prefix) + 5;
+  i = strlen(prefix) + 5;
   buf = (char *)malloc(i);
   if (buf == NULL) {
     /* ugh, this is not important enough to bail, just ignore it */

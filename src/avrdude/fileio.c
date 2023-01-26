@@ -40,15 +40,10 @@
 #include "avrdude.h"
 #include "libavrdude.h"
 
-#if defined(WIN32NATIVE)
-#include "windows/utf8.h"
-#endif
 
 #define IHEX_MAXDATA 256
 
 #define MAX_LINE_LEN 256  /* max line length for ASCII format input files */
-
-#define MAX_MODE_LEN 32  // For fopen_and_seek()
 
 
 struct ihexrec {
@@ -101,66 +96,8 @@ static int fileio_num(struct fioparms * fio,
 		char * filename, FILE * f, AVRMEM * mem, int size,
 		FILEFMT fmt);
 
-static int fmt_autodetect(char * fname, unsigned section);
+static int fmt_autodetect(char * fname);
 
-
-
-FILE *fopen_utf8(const char *filename, const char *mode)
-{
-  // On Windows we need to convert the filename to UTF-16
-#if defined(WIN32NATIVE)
-  static wchar_t fname_buffer[PATH_MAX];
-  static wchar_t mode_buffer[MAX_MODE_LEN];
-
-  if (MultiByteToWideChar(CP_UTF8, 0, filename, -1, fname_buffer, PATH_MAX) == 0) { return NULL; }
-  if (MultiByteToWideChar(CP_UTF8, 0, mode, -1, mode_buffer, MAX_MODE_LEN) == 0) { return NULL; }
-
-  return _wfopen(fname_buffer, mode_buffer);
-#else
-  return fopen(filename, mode);
-#endif
-}
-
-static FILE *fopen_and_seek(const char *filename, const char *mode, unsigned section)
-{
-  FILE *file = fopen_utf8(filename, mode);
-
-  if (file == NULL) {
-    return NULL;
-  }
-
-  // Seek to the specified 'section'
-  static const char *hex_terminator = ":00000001FF\r";
-  unsigned terms_seen = 0;
-  char buffer[MAX_LINE_LEN + 1];
-
-  while (terms_seen < section && fgets(buffer, MAX_LINE_LEN, file) != NULL) {
-    size_t len = strlen(buffer);
-
-    if (buffer[len - 1] == '\n') {
-      len--;
-      buffer[len] = 0;
-    }
-    if (buffer[len - 1] != '\r') {
-      buffer[len] = '\r';
-      len++;
-      buffer[len] = 0;
-    }
-
-    if (strcmp(buffer, hex_terminator) == 0) {
-      // Found a section terminator
-      terms_seen++;
-    }
-  }
-
-  if (feof(file)) {
-    // Section not found
-    fclose(file);
-    return NULL;
-  }
-
-  return file;
-}
 
 
 char * fmtstr(FILEFMT format)
@@ -264,7 +201,7 @@ static int ihex_readrec(struct ihexrec * ihex, char * rec)
   unsigned char cksum;
   int rc;
 
-  len    = (int)strlen(rec);
+  len    = strlen(rec);
   offset = 1;
   cksum  = 0;
 
@@ -274,7 +211,7 @@ static int ihex_readrec(struct ihexrec * ihex, char * rec)
   for (i=0; i<2; i++)
     buf[i] = rec[offset++];
   buf[i] = 0;
-  ihex->reclen = (unsigned char)strtoul(buf, &e, 16);
+  ihex->reclen = strtoul(buf, &e, 16);
   if (e == buf || *e != 0)
     return -1;
 
@@ -294,7 +231,7 @@ static int ihex_readrec(struct ihexrec * ihex, char * rec)
   for (i=0; i<2; i++)
     buf[i] = rec[offset++];
   buf[i] = 0;
-  ihex->rectyp = (unsigned char)strtoul(buf, &e, 16);
+  ihex->rectyp = strtoul(buf, &e, 16);
   if (e == buf || *e != 0)
     return -1;
 
@@ -308,7 +245,7 @@ static int ihex_readrec(struct ihexrec * ihex, char * rec)
     for (i=0; i<2; i++)
       buf[i] = rec[offset++];
     buf[i] = 0;
-    ihex->data[j] = (char)strtoul(buf, &e, 16);
+    ihex->data[j] = strtoul(buf, &e, 16);
     if (e == buf || *e != 0)
       return -1;
     cksum += ihex->data[j];
@@ -320,7 +257,7 @@ static int ihex_readrec(struct ihexrec * ihex, char * rec)
   for (i=0; i<2; i++)
     buf[i] = rec[offset++];
   buf[i] = 0;
-  ihex->cksum = (char)strtoul(buf, &e, 16);
+  ihex->cksum = strtoul(buf, &e, 16);
   if (e == buf || *e != 0)
     return -1;
 
@@ -361,7 +298,7 @@ static int ihex2b(char * infile, FILE * inf,
 
   while (fgets((char *)buffer,MAX_LINE_LEN,inf)!=NULL) {
     lineno++;
-    len = (int)strlen(buffer);
+    len = strlen(buffer);
     if (buffer[len-1] == '\n') 
       buffer[--len] = 0;
     if (buffer[0] != ':')
@@ -388,7 +325,7 @@ static int ihex2b(char * infile, FILE * inf,
           return -1;
         }
         nextaddr = ihex.loadofs + baseaddr - fileoffset;
-        if (nextaddr + ihex.reclen > (unsigned)bufsize) {
+        if (nextaddr + ihex.reclen > bufsize) {
           avrdude_message(MSG_INFO, "%s: ERROR: address 0x%04x out of range at line %d of %s\n",
                           progname, nextaddr+ihex.reclen, lineno, infile);
           return -1;
@@ -502,11 +439,10 @@ static int b2srec(unsigned char * inbuf, int bufsize,
 
       cksum += n + addr_width + 1;
 
-      for (i = addr_width; i>0; i--) {
+      for (i=addr_width; i>0; i--) 
         cksum += (nextaddr >> (i-1) * 8) & 0xff;
-      }
 
-      for (unsigned i = nextaddr; i < nextaddr + n; i++) {
+      for (i=nextaddr; i<nextaddr + n; i++) {
         fprintf(outf, "%02X", buf[i]);
         cksum += buf[i];
       }
@@ -563,7 +499,7 @@ static int srec_readrec(struct ihexrec * srec, char * rec)
   unsigned char cksum;
   int rc;
 
-  len = (int)strlen(rec);
+  len = strlen(rec);
   offset = 1;
   cksum = 0;
   addr_width = 2;
@@ -583,7 +519,7 @@ static int srec_readrec(struct ihexrec * srec, char * rec)
   for (i=0; i<2; i++) 
     buf[i] = rec[offset++];
   buf[i] = 0;
-  srec->reclen = (char)strtoul(buf, &e, 16);
+  srec->reclen = strtoul(buf, &e, 16);
   cksum += srec->reclen;
   srec->reclen -= (addr_width+1);
   if (e == buf || *e != 0) 
@@ -595,7 +531,7 @@ static int srec_readrec(struct ihexrec * srec, char * rec)
   for (i=0; i<addr_width*2; i++) 
     buf[i] = rec[offset++];
   buf[i] = 0;
-  srec->loadofs = strtoul(buf, &e, 16);
+  srec->loadofs = strtoull(buf, &e, 16);
   if (e == buf || *e != 0) 
     return -1;
 
@@ -609,7 +545,7 @@ static int srec_readrec(struct ihexrec * srec, char * rec)
     for (i=0; i<2; i++) 
       buf[i] = rec[offset++];
     buf[i] = 0;
-    srec->data[j] = (char)strtoul(buf, &e, 16);
+    srec->data[j] = strtoul(buf, &e, 16);
     if (e == buf || *e != 0) 
       return -1;
     cksum += srec->data[j];
@@ -621,7 +557,7 @@ static int srec_readrec(struct ihexrec * srec, char * rec)
   for (i=0; i<2; i++) 
     buf[i] = rec[offset++];
   buf[i] = 0;
-  srec->cksum = (char)strtoul(buf, &e, 16);
+  srec->cksum = strtoul(buf, &e, 16);
   if (e == buf || *e != 0) 
     return -1;
 
@@ -651,7 +587,7 @@ static int srec2b(char * infile, FILE * inf,
 
   while (fgets((char *)buffer,MAX_LINE_LEN,inf)!=NULL) {
     lineno++;
-    len = (int)strlen(buffer);
+    len = strlen(buffer);
     if (buffer[len-1] == '\n') 
       buffer[--len] = 0;
     if (buffer[0] != 0x53)
@@ -730,7 +666,7 @@ static int srec2b(char * infile, FILE * inf,
         return -1;
       }
       nextaddr -= fileoffset;
-      if (nextaddr + srec.reclen > (unsigned)bufsize) {
+      if (nextaddr + srec.reclen > bufsize) {
         avrdude_message(MSG_INFO, msg, progname, nextaddr+srec.reclen, "",
                 lineno, infile);
         return -1;
@@ -741,7 +677,7 @@ static int srec2b(char * infile, FILE * inf,
       }
       if (nextaddr+srec.reclen > maxaddr)
         maxaddr = nextaddr+srec.reclen;
-      reccount++;
+      reccount++;      
     }
 
   }
@@ -1144,12 +1080,12 @@ static int fileio_rbin(struct fioparms * fio,
 
   switch (fio->op) {
     case FIO_READ:
-      rc = (int)fread(buf, 1, size, f);
+      rc = fread(buf, 1, size, f);
       if (rc > 0)
         memset(mem->tags, TAG_ALLOCATED, rc);
       break;
     case FIO_WRITE:
-      rc = (int)fwrite(buf, 1, size, f);
+      rc = fwrite(buf, 1, size, f);
       break;
     default:
       avrdude_message(MSG_INFO, "%s: fileio: invalid operation=%d\n",
@@ -1191,7 +1127,7 @@ static int fileio_imm(struct fioparms * fio,
                           progname, p);
           return -1;
         }
-        mem->buf[loc] = (char)b;
+        mem->buf[loc] = b;
         mem->tags[loc++] = TAG_ALLOCATED;
         p = strtok(NULL, " ,");
         rc = loc;
@@ -1422,7 +1358,7 @@ int fileio_setparms(int op, struct fioparms * fp,
 
 
 
-static int fmt_autodetect(char * fname, unsigned section)
+static int fmt_autodetect(char * fname)
 {
   FILE * f;
   unsigned char buf[MAX_LINE_LEN];
@@ -1432,11 +1368,10 @@ static int fmt_autodetect(char * fname, unsigned section)
   int first = 1;
 
 #if defined(WIN32NATIVE)
-  f = fopen_and_seek(fname, "r", section);
+  f = fopen(fname, "r");
 #else
-  f = fopen_and_seek(fname, "rb", section);
+  f = fopen(fname, "rb");
 #endif
-
   if (f == NULL) {
     avrdude_message(MSG_INFO, "%s: error opening %s: %s\n",
             progname, fname, strerror(errno));
@@ -1453,7 +1388,7 @@ static int fmt_autodetect(char * fname, unsigned section)
     }
 
     buf[MAX_LINE_LEN-1] = 0;
-    len = (int)strlen((char *)buf);
+    len = strlen((char *)buf);
     if (buf[len-1] == '\n')
       buf[--len] = 0;
 
@@ -1510,7 +1445,7 @@ static int fmt_autodetect(char * fname, unsigned section)
 
 
 int fileio(int op, char * filename, FILEFMT format, 
-             struct avrpart * p, char * memtype, int size, unsigned section)
+             struct avrpart * p, char * memtype, int size)
 {
   int rc;
   FILE * f;
@@ -1542,17 +1477,15 @@ int fileio(int op, char * filename, FILEFMT format,
   using_stdio = 0;
 
   if (strcmp(filename, "-")==0) {
-    return -1;
-    // Note: we don't want to read stdin or write to stdout as part of Slic3r
-    // if (fio.op == FIO_READ) {
-    //   fname = "<stdin>";
-    //   f = stdin;
-    // }
-    // else {
-    //   fname = "<stdout>";
-    //   f = stdout;
-    // }
-    // using_stdio = 1;
+    if (fio.op == FIO_READ) {
+      fname = "<stdin>";
+      f = stdin;
+    }
+    else {
+      fname = "<stdout>";
+      f = stdout;
+    }
+    using_stdio = 1;
   }
   else {
     fname = filename;
@@ -1569,7 +1502,7 @@ int fileio(int op, char * filename, FILEFMT format,
       return -1;
     }
 
-    format_detect = fmt_autodetect(fname, section);
+    format_detect = fmt_autodetect(fname);
     if (format_detect < 0) {
       avrdude_message(MSG_INFO, "%s: can't determine file format for %s, specify explicitly\n",
                       progname, fname);
@@ -1600,7 +1533,7 @@ int fileio(int op, char * filename, FILEFMT format,
 
   if (format != FMT_IMM) {
     if (!using_stdio) {
-      f = fopen_and_seek(fname, fio.mode, section);
+      f = fopen(fname, fio.mode);
       if (f == NULL) {
         avrdude_message(MSG_INFO, "%s: can't open %s file %s: %s\n",
                 progname, fio.iodesc, fname, strerror(errno));

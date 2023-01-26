@@ -41,6 +41,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#if defined(WIN32NATIVE)
+#  include <malloc.h>  /* for alloca() */
+#endif
 
 #include "avrdude.h"
 #include "libavrdude.h"
@@ -128,7 +131,7 @@ static int buspirate_recv_bin(struct programmer_t *pgm, unsigned char *buf, size
 	avrdude_message(MSG_DEBUG, "%s: buspirate_recv_bin():\n", progname);
 	dump_mem(MSG_DEBUG, buf, len);
 
-	return (int)len;
+	return len;
 }
 
 static int buspirate_expect_bin(struct programmer_t *pgm,
@@ -249,7 +252,7 @@ static int buspirate_send(struct programmer_t *pgm, const char *str)
 
 static int buspirate_is_prompt(const char *str)
 {
-	int strlen_str = (int)strlen(str);
+	int strlen_str = strlen(str);
 	/* Prompt ends with '>' or '> '
 	 * all other input probably ends with '\n' */
 	return (str[strlen_str - 1] == '>' || str[strlen_str - 2] == '>');
@@ -1135,10 +1138,9 @@ static void buspirate_setup(struct programmer_t *pgm)
 {
 	/* Allocate private data */
 	if ((pgm->cookie = calloc(1, sizeof(struct pdata))) == 0) {
-		// avrdude_message(MSG_INFO, "%s: buspirate_initpgm(): Out of memory allocating private data\n",
-		//                 progname);
-		// exit(1);
-		avrdude_oom("buspirate_initpgm(): Out of memory allocating private data\n");
+		avrdude_message(MSG_INFO, "%s: buspirate_initpgm(): Out of memory allocating private data\n",
+		                progname);
+		exit(1);
 	}
 	PDATA(pgm)->serial_recv_timeout = 100;
 }

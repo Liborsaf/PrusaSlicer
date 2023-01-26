@@ -63,10 +63,9 @@ struct pdata
 static void butterfly_setup(PROGRAMMER * pgm)
 {
   if ((pgm->cookie = malloc(sizeof(struct pdata))) == 0) {
-    // avrdude_message(MSG_INFO, "%s: butterfly_setup(): Out of memory allocating private data\n",
-    //                 progname);
-    // exit(1);
-    avrdude_oom("butterfly_setup(): Out of memory allocating private data\n");
+    avrdude_message(MSG_INFO, "%s: butterfly_setup(): Out of memory allocating private data\n",
+                    progname);
+    exit(1);
   }
   memset(pgm->cookie, 0, sizeof(struct pdata));
 }
@@ -675,7 +674,7 @@ static int butterfly_paged_load(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
       butterfly_set_addr(pgm, addr / rd_size);
     }
     while (addr < max_addr) {
-      if ((max_addr - addr) < (unsigned)blocksize) {
+      if ((max_addr - addr) < blocksize) {
         blocksize = max_addr - addr;
       };
       cmd[1] = (blocksize >> 8) & 0xff;

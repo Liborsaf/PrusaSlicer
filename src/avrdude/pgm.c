@@ -172,10 +172,9 @@ PROGRAMMER * pgm_dup(const PROGRAMMER * const src)
   for (ln = lfirst(src->usbpid); ln; ln = lnext(ln)) {
     int *ip = malloc(sizeof(int));
     if (ip == NULL) {
-      // avrdude_message(MSG_INFO, "%s: out of memory allocating programmer structure\n",
-      //         progname);
-      // exit(1);
-      avrdude_oom("out of memory allocating programmer structure\n");
+      avrdude_message(MSG_INFO, "%s: out of memory allocating programmer structure\n",
+              progname);
+      exit(1);
     }
     *ip = *(int *) ldata(ln);
     ladd(pgm->usbpid, ip);

@@ -44,11 +44,8 @@
 #include <errno.h>
 #include <limits.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <time.h>
-
-#if !defined(WIN32NATIVE)
-#  include <sys/time.h>
-#endif
 
 #include "avrdude.h"
 #include "libavrdude.h"
@@ -79,19 +76,11 @@
 #define SERIAL_TIMEOUT 2
 
 // Retry count
-#define RETRIES 0
+#define RETRIES 5
 
-#if 0
-#define DEBUG(...) avrdude_message(MSG_INFO, __VA_ARGS__)
-#else
-#define DEBUG(...)
-#endif
+#define DEBUG(...) avrdude_message(MSG_TRACE2, __VA_ARGS__)
 
-#if 0
-#define DEBUGRECV(...) avrdude_message(MSG_INFO, __VA_ARGS__)
-#else
-#define DEBUGRECV(...)
-#endif
+#define DEBUGRECV(...) avrdude_message(MSG_TRACE2, __VA_ARGS__)
 
 enum hvmode
 {
@@ -130,58 +119,58 @@ struct jtagispentry
 #define SZ_SPI_MULTI     (USHRT_MAX - 1)
 };
 
-// static const struct jtagispentry jtagispcmds[] = {
-//   /* generic */
-//   { CMD_SET_PARAMETER, 2 },
-//   { CMD_GET_PARAMETER, 3 },
-//   { CMD_OSCCAL, 2 },
-//   { CMD_LOAD_ADDRESS, 2 },
-//   /* ISP mode */
-//   { CMD_ENTER_PROGMODE_ISP, 2 },
-//   { CMD_LEAVE_PROGMODE_ISP, 2 },
-//   { CMD_CHIP_ERASE_ISP, 2 },
-//   { CMD_PROGRAM_FLASH_ISP, 2 },
-//   { CMD_READ_FLASH_ISP, SZ_READ_FLASH_EE },
-//   { CMD_PROGRAM_EEPROM_ISP, 2 },
-//   { CMD_READ_EEPROM_ISP, SZ_READ_FLASH_EE },
-//   { CMD_PROGRAM_FUSE_ISP, 3 },
-//   { CMD_READ_FUSE_ISP, 4 },
-//   { CMD_PROGRAM_LOCK_ISP, 3 },
-//   { CMD_READ_LOCK_ISP, 4 },
-//   { CMD_READ_SIGNATURE_ISP, 4 },
-//   { CMD_READ_OSCCAL_ISP, 4 },
-//   { CMD_SPI_MULTI, SZ_SPI_MULTI },
-//   /* all HV modes */
-//   { CMD_SET_CONTROL_STACK, 2 },
-//   /* HVSP mode */
-//   { CMD_ENTER_PROGMODE_HVSP, 2 },
-//   { CMD_LEAVE_PROGMODE_HVSP, 2 },
-//   { CMD_CHIP_ERASE_HVSP, 2 },
-//   { CMD_PROGRAM_FLASH_HVSP, 2 },
-//   { CMD_READ_FLASH_HVSP, SZ_READ_FLASH_EE },
-//   { CMD_PROGRAM_EEPROM_HVSP, 2 },
-//   { CMD_READ_EEPROM_HVSP, SZ_READ_FLASH_EE },
-//   { CMD_PROGRAM_FUSE_HVSP, 2 },
-//   { CMD_READ_FUSE_HVSP, 3 },
-//   { CMD_PROGRAM_LOCK_HVSP, 2 },
-//   { CMD_READ_LOCK_HVSP, 3 },
-//   { CMD_READ_SIGNATURE_HVSP, 3 },
-//   { CMD_READ_OSCCAL_HVSP, 3 },
-//   /* PP mode */
-//   { CMD_ENTER_PROGMODE_PP, 2 },
-//   { CMD_LEAVE_PROGMODE_PP, 2 },
-//   { CMD_CHIP_ERASE_PP, 2 },
-//   { CMD_PROGRAM_FLASH_PP, 2 },
-//   { CMD_READ_FLASH_PP, SZ_READ_FLASH_EE },
-//   { CMD_PROGRAM_EEPROM_PP, 2 },
-//   { CMD_READ_EEPROM_PP, SZ_READ_FLASH_EE },
-//   { CMD_PROGRAM_FUSE_PP, 2 },
-//   { CMD_READ_FUSE_PP, 3 },
-//   { CMD_PROGRAM_LOCK_PP, 2 },
-//   { CMD_READ_LOCK_PP, 3 },
-//   { CMD_READ_SIGNATURE_PP, 3 },
-//   { CMD_READ_OSCCAL_PP, 3 },
-// };
+static const struct jtagispentry jtagispcmds[] = {
+  /* generic */
+  { CMD_SET_PARAMETER, 2 },
+  { CMD_GET_PARAMETER, 3 },
+  { CMD_OSCCAL, 2 },
+  { CMD_LOAD_ADDRESS, 2 },
+  /* ISP mode */
+  { CMD_ENTER_PROGMODE_ISP, 2 },
+  { CMD_LEAVE_PROGMODE_ISP, 2 },
+  { CMD_CHIP_ERASE_ISP, 2 },
+  { CMD_PROGRAM_FLASH_ISP, 2 },
+  { CMD_READ_FLASH_ISP, SZ_READ_FLASH_EE },
+  { CMD_PROGRAM_EEPROM_ISP, 2 },
+  { CMD_READ_EEPROM_ISP, SZ_READ_FLASH_EE },
+  { CMD_PROGRAM_FUSE_ISP, 3 },
+  { CMD_READ_FUSE_ISP, 4 },
+  { CMD_PROGRAM_LOCK_ISP, 3 },
+  { CMD_READ_LOCK_ISP, 4 },
+  { CMD_READ_SIGNATURE_ISP, 4 },
+  { CMD_READ_OSCCAL_ISP, 4 },
+  { CMD_SPI_MULTI, SZ_SPI_MULTI },
+  /* all HV modes */
+  { CMD_SET_CONTROL_STACK, 2 },
+  /* HVSP mode */
+  { CMD_ENTER_PROGMODE_HVSP, 2 },
+  { CMD_LEAVE_PROGMODE_HVSP, 2 },
+  { CMD_CHIP_ERASE_HVSP, 2 },
+  { CMD_PROGRAM_FLASH_HVSP, 2 },
+  { CMD_READ_FLASH_HVSP, SZ_READ_FLASH_EE },
+  { CMD_PROGRAM_EEPROM_HVSP, 2 },
+  { CMD_READ_EEPROM_HVSP, SZ_READ_FLASH_EE },
+  { CMD_PROGRAM_FUSE_HVSP, 2 },
+  { CMD_READ_FUSE_HVSP, 3 },
+  { CMD_PROGRAM_LOCK_HVSP, 2 },
+  { CMD_READ_LOCK_HVSP, 3 },
+  { CMD_READ_SIGNATURE_HVSP, 3 },
+  { CMD_READ_OSCCAL_HVSP, 3 },
+  /* PP mode */
+  { CMD_ENTER_PROGMODE_PP, 2 },
+  { CMD_LEAVE_PROGMODE_PP, 2 },
+  { CMD_CHIP_ERASE_PP, 2 },
+  { CMD_PROGRAM_FLASH_PP, 2 },
+  { CMD_READ_FLASH_PP, SZ_READ_FLASH_EE },
+  { CMD_PROGRAM_EEPROM_PP, 2 },
+  { CMD_READ_EEPROM_PP, SZ_READ_FLASH_EE },
+  { CMD_PROGRAM_FUSE_PP, 2 },
+  { CMD_READ_FUSE_PP, 3 },
+  { CMD_PROGRAM_LOCK_PP, 2 },
+  { CMD_READ_LOCK_PP, 3 },
+  { CMD_READ_SIGNATURE_PP, 3 },
+  { CMD_READ_OSCCAL_PP, 3 },
+};
 
 /*
  * From XML file:
@@ -295,10 +284,9 @@ static int stk600_xprog_program_enable(PROGRAMMER * pgm, AVRPART * p);
 void stk500v2_setup(PROGRAMMER * pgm)
 {
   if ((pgm->cookie = malloc(sizeof(struct pdata))) == 0) {
-    // avrdude_message(MSG_INFO, "%s: stk500v2_setup(): Out of memory allocating private data\n",
-    //                 progname);
-    // exit(1);
-    avrdude_oom("stk500v2_setup(): Out of memory allocating private data\n");
+    avrdude_message(MSG_INFO, "%s: stk500v2_setup(): Out of memory allocating private data\n",
+                    progname);
+    exit(1);
   }
   memset(pgm->cookie, 0, sizeof(struct pdata));
   PDATA(pgm)->command_sequence = 1;
@@ -307,48 +295,48 @@ void stk500v2_setup(PROGRAMMER * pgm)
 
 static void stk500v2_jtagmkII_setup(PROGRAMMER * pgm)
 {
-  // void *mycookie, *theircookie;
+  void *mycookie, *theircookie;
 
-  // if ((pgm->cookie = malloc(sizeof(struct pdata))) == 0) {
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_setup(): Out of memory allocating private data\n",
-  //                   progname);
-  //   exit(1);
-  // }
-  // memset(pgm->cookie, 0, sizeof(struct pdata));
-  // PDATA(pgm)->command_sequence = 1;
+  if ((pgm->cookie = malloc(sizeof(struct pdata))) == 0) {
+    avrdude_message(MSG_INFO, "%s: stk500v2_setup(): Out of memory allocating private data\n",
+                    progname);
+    exit(1);
+  }
+  memset(pgm->cookie, 0, sizeof(struct pdata));
+  PDATA(pgm)->command_sequence = 1;
 
-  // /*
-  //  * Now, have the JTAG ICE mkII backend allocate its own private
-  //  * data.  Store our own cookie in a safe place for the time being.
-  //  */
-  // mycookie = pgm->cookie;
-  // jtagmkII_setup(pgm);
-  // theircookie = pgm->cookie;
-  // pgm->cookie = mycookie;
-  // PDATA(pgm)->chained_pdata = theircookie;
+  /*
+   * Now, have the JTAG ICE mkII backend allocate its own private
+   * data.  Store our own cookie in a safe place for the time being.
+   */
+  mycookie = pgm->cookie;
+  jtagmkII_setup(pgm);
+  theircookie = pgm->cookie;
+  pgm->cookie = mycookie;
+  PDATA(pgm)->chained_pdata = theircookie;
 }
 
 static void stk500v2_jtag3_setup(PROGRAMMER * pgm)
 {
-  // void *mycookie, *theircookie;
+  void *mycookie, *theircookie;
 
-  // if ((pgm->cookie = malloc(sizeof(struct pdata))) == 0) {
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_setup(): Out of memory allocating private data\n",
-  //                   progname);
-  //   exit(1);
-  // }
-  // memset(pgm->cookie, 0, sizeof(struct pdata));
-  // PDATA(pgm)->command_sequence = 1;
+  if ((pgm->cookie = malloc(sizeof(struct pdata))) == 0) {
+    avrdude_message(MSG_INFO, "%s: stk500v2_setup(): Out of memory allocating private data\n",
+                    progname);
+    exit(1);
+  }
+  memset(pgm->cookie, 0, sizeof(struct pdata));
+  PDATA(pgm)->command_sequence = 1;
 
-  // /*
-  //  * Now, have the JTAGICE3 backend allocate its own private
-  //  * data.  Store our own cookie in a safe place for the time being.
-  //  */
-  // mycookie = pgm->cookie;
-  // jtag3_setup(pgm);
-  // theircookie = pgm->cookie;
-  // pgm->cookie = mycookie;
-  // PDATA(pgm)->chained_pdata = theircookie;
+  /*
+   * Now, have the JTAGICE3 backend allocate its own private
+   * data.  Store our own cookie in a safe place for the time being.
+   */
+  mycookie = pgm->cookie;
+  jtag3_setup(pgm);
+  theircookie = pgm->cookie;
+  pgm->cookie = mycookie;
+  PDATA(pgm)->chained_pdata = theircookie;
 }
 
 void stk500v2_teardown(PROGRAMMER * pgm)
@@ -358,36 +346,36 @@ void stk500v2_teardown(PROGRAMMER * pgm)
 
 static void stk500v2_jtagmkII_teardown(PROGRAMMER * pgm)
 {
-  // void *mycookie;
+  void *mycookie;
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // jtagmkII_teardown(pgm);
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  jtagmkII_teardown(pgm);
 
-  // free(mycookie);
+  free(mycookie);
 }
 
 static void stk500v2_jtag3_teardown(PROGRAMMER * pgm)
 {
-  // void *mycookie;
+  void *mycookie;
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // jtag3_teardown(pgm);
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  jtag3_teardown(pgm);
 
-  // free(mycookie);
+  free(mycookie);
 }
 
 
-// static unsigned short
-// b2_to_u16(unsigned char *b)
-// {
-//   unsigned short l;
-//   l = b[0];
-//   l += (unsigned)b[1] << 8;
+static unsigned short
+b2_to_u16(unsigned char *b)
+{
+  unsigned short l;
+  l = b[0];
+  l += (unsigned)b[1] << 8;
 
-//   return l;
-// }
+  return l;
+}
 
 static int stk500v2_send_mk2(PROGRAMMER * pgm, unsigned char * data, size_t len)
 {
@@ -399,16 +387,16 @@ static int stk500v2_send_mk2(PROGRAMMER * pgm, unsigned char * data, size_t len)
   return 0;
 }
 
-// static unsigned short get_jtagisp_return_size(unsigned char cmd)
-// {
-//   int i;
+static unsigned short get_jtagisp_return_size(unsigned char cmd)
+{
+  int i;
 
-//   for (i = 0; i < sizeof jtagispcmds / sizeof jtagispcmds[0]; i++)
-//     if (jtagispcmds[i].cmd == cmd)
-//       return jtagispcmds[i].size;
+  for (i = 0; i < sizeof jtagispcmds / sizeof jtagispcmds[0]; i++)
+    if (jtagispcmds[i].cmd == cmd)
+      return jtagispcmds[i].size;
 
-//   return 0;
-// }
+  return 0;
+}
 
 /*
  * Send the data as a JTAG ICE mkII encapsulated ISP packet.
@@ -418,49 +406,48 @@ static int stk500v2_send_mk2(PROGRAMMER * pgm, unsigned char * data, size_t len)
  */
 static int stk500v2_jtagmkII_send(PROGRAMMER * pgm, unsigned char * data, size_t len)
 {
-  return -1;
-  // unsigned char *cmdbuf;
-  // int rv;
-  // unsigned short sz;
-  // void *mycookie;
+  unsigned char *cmdbuf;
+  int rv;
+  unsigned short sz;
+  void *mycookie;
 
-  // sz = get_jtagisp_return_size(data[0]);
-  // if (sz == 0) {
-  //   avrdude_message(MSG_INFO, "%s: unsupported encapsulated ISP command: %#x\n",
-	 //    progname, data[0]);
-  //   return -1;
-  // }
-  // if (sz == SZ_READ_FLASH_EE) {
-  //   /*
-  //    * For CMND_READ_FLASH_ISP and CMND_READ_EEPROM_ISP, extract the
-  //    * size of the return data from the request.  Note that the
-  //    * request itself has the size in big endian format, while we are
-  //    * supposed to deliver it in little endian.
-  //    */
-  //   sz = 3 + (data[1] << 8) + data[2];
-  // } else if (sz == SZ_SPI_MULTI) {
-  //   /*
-  //    * CMND_SPI_MULTI has the Rx size encoded in its 3rd byte.
-  //    */
-  //   sz = 3 + data[2];
-  // }
+  sz = get_jtagisp_return_size(data[0]);
+  if (sz == 0) {
+    avrdude_message(MSG_INFO, "%s: unsupported encapsulated ISP command: %#x\n",
+	    progname, data[0]);
+    return -1;
+  }
+  if (sz == SZ_READ_FLASH_EE) {
+    /*
+     * For CMND_READ_FLASH_ISP and CMND_READ_EEPROM_ISP, extract the
+     * size of the return data from the request.  Note that the
+     * request itself has the size in big endian format, while we are
+     * supposed to deliver it in little endian.
+     */
+    sz = 3 + (data[1] << 8) + data[2];
+  } else if (sz == SZ_SPI_MULTI) {
+    /*
+     * CMND_SPI_MULTI has the Rx size encoded in its 3rd byte.
+     */
+    sz = 3 + data[2];
+  }
 
-  // if ((cmdbuf = malloc(len + 3)) == NULL) {
-  //   avrdude_message(MSG_INFO, "%s: out of memory for command packet\n",
-  //           progname);
-  //   exit(1);
-  // }
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // cmdbuf[0] = CMND_ISP_PACKET;
-  // cmdbuf[1] = sz & 0xff;
-  // cmdbuf[2] = (sz >> 8) & 0xff;
-  // memcpy(cmdbuf + 3, data, len);
-  // rv = jtagmkII_send(pgm, cmdbuf, len + 3);
-  // free(cmdbuf);
-  // pgm->cookie = mycookie;
+  if ((cmdbuf = malloc(len + 3)) == NULL) {
+    avrdude_message(MSG_INFO, "%s: out of memory for command packet\n",
+            progname);
+    exit(1);
+  }
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  cmdbuf[0] = CMND_ISP_PACKET;
+  cmdbuf[1] = sz & 0xff;
+  cmdbuf[2] = (sz >> 8) & 0xff;
+  memcpy(cmdbuf + 3, data, len);
+  rv = jtagmkII_send(pgm, cmdbuf, len + 3);
+  free(cmdbuf);
+  pgm->cookie = mycookie;
 
-  // return rv;
+  return rv;
 }
 
 /*
@@ -468,25 +455,24 @@ static int stk500v2_jtagmkII_send(PROGRAMMER * pgm, unsigned char * data, size_t
  */
 static int stk500v2_jtag3_send(PROGRAMMER * pgm, unsigned char * data, size_t len)
 {
-  return -1;
-  // unsigned char *cmdbuf;
-  // int rv;
-  // void *mycookie;
+  unsigned char *cmdbuf;
+  int rv;
+  void *mycookie;
 
-  // if ((cmdbuf = malloc(len + 1)) == NULL) {
-  //   avrdude_message(MSG_INFO, "%s: out of memory for command packet\n",
-  //           progname);
-  //   exit(1);
-  // }
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // cmdbuf[0] = SCOPE_AVR_ISP;
-  // memcpy(cmdbuf + 1, data, len);
-  // rv = jtag3_send(pgm, cmdbuf, len + 1);
-  // free(cmdbuf);
-  // pgm->cookie = mycookie;
+  if ((cmdbuf = malloc(len + 1)) == NULL) {
+    avrdude_message(MSG_INFO, "%s: out of memory for command packet\n",
+            progname);
+    exit(1);
+  }
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  cmdbuf[0] = SCOPE_AVR_ISP;
+  memcpy(cmdbuf + 1, data, len);
+  rv = jtag3_send(pgm, cmdbuf, len + 1);
+  free(cmdbuf);
+  pgm->cookie = mycookie;
 
-  // return rv;
+  return rv;
 }
 
 static int stk500v2_send(PROGRAMMER * pgm, unsigned char * data, size_t len)
@@ -504,7 +490,7 @@ static int stk500v2_send(PROGRAMMER * pgm, unsigned char * data, size_t len)
 
   buf[0] = MESSAGE_START;
   buf[1] = PDATA(pgm)->command_sequence;
-  buf[2] = (char)(len / 256);
+  buf[2] = len / 256;
   buf[3] = len % 256;
   buf[4] = TOKEN;
   memcpy(buf+5, data, len);
@@ -519,7 +505,7 @@ static int stk500v2_send(PROGRAMMER * pgm, unsigned char * data, size_t len)
   DEBUG(", %d)\n",len+6);
 
   if (serial_send(&pgm->fd, buf, len+6) != 0) {
-    avrdude_message(MSG_INFO, "%s: stk500v2_send(): failed to send command to serial port\n",progname);
+    avrdude_message(MSG_INFO, "%s: stk500_send(): failed to send command to serial port\n",progname);
     return -1;
   }
 
@@ -549,80 +535,78 @@ static int stk500v2_recv_mk2(PROGRAMMER * pgm, unsigned char *msg,
 static int stk500v2_jtagmkII_recv(PROGRAMMER * pgm, unsigned char *msg,
                                   size_t maxsize)
 {
-  return -1;
-  // int rv;
-  // unsigned char *jtagmsg;
-  // void *mycookie;
+  int rv;
+  unsigned char *jtagmsg;
+  void *mycookie;
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // rv = jtagmkII_recv(pgm, &jtagmsg);
-  // pgm->cookie = mycookie;
-  // if (rv <= 0) {
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): error in jtagmkII_recv()\n",
-  //           progname);
-  //   return -1;
-  // }
-  // if (rv - 1 > maxsize) {
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): got %u bytes, have only room for %u bytes\n",
-  //                   progname, (unsigned)rv - 1, (unsigned)maxsize);
-  //   rv = maxsize;
-  // }
-  // switch (jtagmsg[0]) {
-  // case RSP_SPI_DATA:
-  //   break;
-  // case RSP_FAILED:
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): failed\n",
-	 //    progname);
-  //   return -1;
-  // case RSP_ILLEGAL_MCU_STATE:
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): illegal MCU state\n",
-	 //    progname);
-  //   return -1;
-  // default:
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): unknown status %d\n",
-	 //    progname, jtagmsg[0]);
-  //   return -1;
-  // }
-  // memcpy(msg, jtagmsg + 1, rv - 1);
-  // return rv;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  rv = jtagmkII_recv(pgm, &jtagmsg);
+  pgm->cookie = mycookie;
+  if (rv <= 0) {
+    avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): error in jtagmkII_recv()\n",
+            progname);
+    return -1;
+  }
+  if (rv - 1 > maxsize) {
+    avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): got %u bytes, have only room for %u bytes\n",
+                    progname, (unsigned)rv - 1, (unsigned)maxsize);
+    rv = maxsize;
+  }
+  switch (jtagmsg[0]) {
+  case RSP_SPI_DATA:
+    break;
+  case RSP_FAILED:
+    avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): failed\n",
+	    progname);
+    return -1;
+  case RSP_ILLEGAL_MCU_STATE:
+    avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): illegal MCU state\n",
+	    progname);
+    return -1;
+  default:
+    avrdude_message(MSG_INFO, "%s: stk500v2_jtagmkII_recv(): unknown status %d\n",
+	    progname, jtagmsg[0]);
+    return -1;
+  }
+  memcpy(msg, jtagmsg + 1, rv - 1);
+  return rv;
 }
 
 static int stk500v2_jtag3_recv(PROGRAMMER * pgm, unsigned char *msg,
 			       size_t maxsize)
 {
-  return -1;
-  // int rv;
-  // unsigned char *jtagmsg;
-  // void *mycookie;
+  int rv;
+  unsigned char *jtagmsg;
+  void *mycookie;
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // rv = jtag3_recv(pgm, &jtagmsg);
-  // pgm->cookie = mycookie;
-  // if (rv <= 0) {
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_jtag3_recv(): error in jtagmkII_recv()\n",
-  //           progname);
-  //   return -1;
-  // }
-  // /* Getting more data than expected is a normal case for the EDBG
-  //    implementation of JTAGICE3, as they always request a full 512
-  //    octets from the ICE.  Thus, only complain at high verbose
-  //    levels. */
-  // if (rv - 1 > maxsize) {
-  //   avrdude_message(MSG_DEBUG, "%s: stk500v2_jtag3_recv(): got %u bytes, have only room for %u bytes\n",
-  //                     progname, (unsigned)rv - 1, (unsigned)maxsize);
-  //   rv = maxsize;
-  // }
-  // if (jtagmsg[0] != SCOPE_AVR_ISP) {
-  //   avrdude_message(MSG_INFO, "%s: stk500v2_jtag3_recv(): message is not AVR ISP: 0x%02x\n",
-  //                   progname, jtagmsg[0]);
-  //   free(jtagmsg);
-  //   return -1;
-  // }
-  // memcpy(msg, jtagmsg + 1, rv - 1);
-  // free(jtagmsg);
-  // return rv;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  rv = jtag3_recv(pgm, &jtagmsg);
+  pgm->cookie = mycookie;
+  if (rv <= 0) {
+    avrdude_message(MSG_INFO, "%s: stk500v2_jtag3_recv(): error in jtagmkII_recv()\n",
+            progname);
+    return -1;
+  }
+  /* Getting more data than expected is a normal case for the EDBG
+     implementation of JTAGICE3, as they always request a full 512
+     octets from the ICE.  Thus, only complain at high verbose
+     levels. */
+  if (rv - 1 > maxsize) {
+    avrdude_message(MSG_DEBUG, "%s: stk500v2_jtag3_recv(): got %u bytes, have only room for %u bytes\n",
+                      progname, (unsigned)rv - 1, (unsigned)maxsize);
+    rv = maxsize;
+  }
+  if (jtagmsg[0] != SCOPE_AVR_ISP) {
+    avrdude_message(MSG_INFO, "%s: stk500v2_jtag3_recv(): message is not AVR ISP: 0x%02x\n",
+                    progname, jtagmsg[0]);
+    free(jtagmsg);
+    return -1;
+  }
+  memcpy(msg, jtagmsg + 1, rv - 1);
+  free(jtagmsg);
+  return rv;
 }
 
 static int stk500v2_recv(PROGRAMMER * pgm, unsigned char *msg, size_t maxsize) {
@@ -655,7 +639,6 @@ static int stk500v2_recv(PROGRAMMER * pgm, unsigned char *msg, size_t maxsize) {
   tstart = tv.tv_sec;
 
   while ( (state != sDONE ) && (!timeout) ) {
-    RETURN_IF_CANCEL();
     if (serial_recv(&pgm->fd, &c, 1) < 0)
       goto timedout;
     DEBUG("0x%02x ",c);
@@ -733,7 +716,7 @@ static int stk500v2_recv(PROGRAMMER * pgm, unsigned char *msg, size_t maxsize) {
      tnow = tv.tv_sec;
      if (tnow-tstart > timeoutval) {			// wuff - signed/unsigned/overflow
       timedout:
-       avrdude_message(MSG_INFO, "%s: stk500v2_recv(): timeout\n",
+       avrdude_message(MSG_INFO, "%s: stk500v2_ReceiveMessage(): timeout\n",
                progname);
        return -1;
      }
@@ -760,21 +743,12 @@ int stk500v2_getsync(PROGRAMMER * pgm) {
 retry:
   tries++;
 
-  RETURN_IF_CANCEL();
-
   // send the sync command and see if we can get there
   buf[0] = CMD_SIGN_ON;
-  if (stk500v2_send(pgm, buf, 1) != 0) {
-    avrdude_message(MSG_INFO, "%s: stk500v2_getsync(): can't communicate with device\n", progname);
-    return -1;
-  }
-
-  RETURN_IF_CANCEL();
+  stk500v2_send(pgm, buf, 1);
 
   // try to get the response back and see where we got
   status = stk500v2_recv(pgm, resp, sizeof(resp));
-
-  RETURN_IF_CANCEL();
 
   // if we got bytes returned, check to see what came back
   if (status > 0) {
@@ -847,20 +821,10 @@ static int stk500v2_command(PROGRAMMER * pgm, unsigned char * buf,
 retry:
   tries++;
 
-  RETURN_IF_CANCEL();
-
   // send the command to the programmer
-  if (stk500v2_send(pgm, buf, len) != 0) {
-    avrdude_message(MSG_INFO, "%s: stk500v2_command(): can't communicate with device\n", progname);
-    return -1;
-  }
-
-  RETURN_IF_CANCEL();
-
+  stk500v2_send(pgm,buf,len);
   // attempt to read the status back
   status = stk500v2_recv(pgm,buf,maxlen);
-
-  RETURN_IF_CANCEL();
 
   // if we got a successful readback, return
   if (status > 0) {
@@ -1128,8 +1092,7 @@ static int stk500v2_program_enable(PROGRAMMER * pgm, AVRPART * p)
 {
   unsigned char buf[16];
   char msg[100];             /* see remarks above about size needed */
-  int rv;
-  // int tries;
+  int rv, tries;
 
   PDATA(pgm)->lastpart = p;
 
@@ -1144,8 +1107,8 @@ static int stk500v2_program_enable(PROGRAMMER * pgm, AVRPART * p)
       /* Activate AVR-style (low active) RESET */
       stk500v2_setparm_real(pgm, PARAM_RESET_POLARITY, 0x01);
 
-  // tries = 0;
-// retry:
+  tries = 0;
+retry:
   buf[0] = CMD_ENTER_PROGMODE_ISP;
   buf[1] = p->timeout;
   buf[2] = p->stabdelay;
@@ -1176,52 +1139,51 @@ static int stk500v2_program_enable(PROGRAMMER * pgm, AVRPART * p)
         break;
 
     case PGMTYPE_JTAGICE3:
-        return -1;
-        // if (buf[1] == STATUS_CMD_FAILED &&
-        //     (p->flags & AVRPART_HAS_DW) != 0) {
-        //     void *mycookie;
-        //     unsigned char cmd[4], *resp;
+        if (buf[1] == STATUS_CMD_FAILED &&
+            (p->flags & AVRPART_HAS_DW) != 0) {
+            void *mycookie;
+            unsigned char cmd[4], *resp;
 
-        //     /* Try debugWIRE, and MONCON_DISABLE */
-        //     avrdude_message(MSG_NOTICE2, "%s: No response in ISP mode, trying debugWIRE\n",
-        //                         progname);
+            /* Try debugWIRE, and MONCON_DISABLE */
+            avrdude_message(MSG_NOTICE2, "%s: No response in ISP mode, trying debugWIRE\n",
+                                progname);
 
-        //     mycookie = pgm->cookie;
-        //     pgm->cookie = PDATA(pgm)->chained_pdata;
+            mycookie = pgm->cookie;
+            pgm->cookie = PDATA(pgm)->chained_pdata;
 
-        //     cmd[0] = PARM3_CONN_DW;
-        //     if (jtag3_setparm(pgm, SCOPE_AVR, 1, PARM3_CONNECTION, cmd, 1) < 0) {
-        //         pgm->cookie = mycookie;
-        //         break;
-        //     }
+            cmd[0] = PARM3_CONN_DW;
+            if (jtag3_setparm(pgm, SCOPE_AVR, 1, PARM3_CONNECTION, cmd, 1) < 0) {
+                pgm->cookie = mycookie;
+                break;
+            }
 
-        //     cmd[0] = SCOPE_AVR;
+            cmd[0] = SCOPE_AVR;
 
-        //     cmd[1] = CMD3_SIGN_ON;
-        //     cmd[2] = cmd[3] = 0;
-        //     if (jtag3_command(pgm, cmd, 4, &resp, "AVR sign-on") >= 0) {
-        //         free(resp);
+            cmd[1] = CMD3_SIGN_ON;
+            cmd[2] = cmd[3] = 0;
+            if (jtag3_command(pgm, cmd, 4, &resp, "AVR sign-on") >= 0) {
+                free(resp);
 
-        //         cmd[1] = CMD3_START_DW_DEBUG;
-        //         if (jtag3_command(pgm, cmd, 4, &resp, "start DW debug") >= 0) {
-        //             free(resp);
+                cmd[1] = CMD3_START_DW_DEBUG;
+                if (jtag3_command(pgm, cmd, 4, &resp, "start DW debug") >= 0) {
+                    free(resp);
 
-        //             cmd[1] = CMD3_MONCON_DISABLE;
-        //             if (jtag3_command(pgm, cmd, 3, &resp, "MonCon disable") >= 0)
-        //                 free(resp);
-        //         }
-        //     }
-        //     pgm->cookie = mycookie;
-        //     if (tries++ > 3) {
-        //         avrdude_message(MSG_INFO, "%s: Failed to return from debugWIRE to ISP.\n",
-        //                         progname);
-        //         break;
-        //     }
-        //     avrdude_message(MSG_INFO, "%s: Target prepared for ISP, signed off.\n"
-        //                     "%s: Now retrying without power-cycling the target.\n",
-        //                     progname, progname);
-        //     goto retry;
-        // }
+                    cmd[1] = CMD3_MONCON_DISABLE;
+                    if (jtag3_command(pgm, cmd, 3, &resp, "MonCon disable") >= 0)
+                        free(resp);
+                }
+            }
+            pgm->cookie = mycookie;
+            if (tries++ > 3) {
+                avrdude_message(MSG_INFO, "%s: Failed to return from debugWIRE to ISP.\n",
+                                progname);
+                break;
+            }
+            avrdude_message(MSG_INFO, "%s: Target prepared for ISP, signed off.\n"
+                            "%s: Now retrying without power-cycling the target.\n",
+                            progname, progname);
+            goto retry;
+        }
         break;
 
     default:
@@ -1284,7 +1246,6 @@ static int stk500hvsp_program_enable(PROGRAMMER * pgm, AVRPART * p)
  */
 static int stk500v2_initialize(PROGRAMMER * pgm, AVRPART * p)
 {
-
   LNODEID ln;
   AVRMEM * m;
 
@@ -1358,6 +1319,7 @@ static int stk500v2_initialize(PROGRAMMER * pgm, AVRPART * p)
     pgm->disable(pgm);
     usleep(10000);
   }
+
   return pgm->program_enable(pgm, p);
 }
 
@@ -1368,89 +1330,88 @@ static int stk500v2_initialize(PROGRAMMER * pgm, AVRPART * p)
  */
 static int stk500v2_jtag3_initialize(PROGRAMMER * pgm, AVRPART * p)
 {
-  return -1;
-  // unsigned char parm[4], *resp;
-  // LNODEID ln;
-  // AVRMEM * m;
-  // void *mycookie;
+  unsigned char parm[4], *resp;
+  LNODEID ln;
+  AVRMEM * m;
+  void *mycookie;
 
-  // if ((p->flags & AVRPART_HAS_PDI) ||
-  //     (p->flags & AVRPART_HAS_TPI)) {
-  //   avrdude_message(MSG_INFO, "%s: jtag3_initialize(): part %s has no ISP interface\n",
-	 //    progname, p->desc);
-  //   return -1;
-  // }
+  if ((p->flags & AVRPART_HAS_PDI) ||
+      (p->flags & AVRPART_HAS_TPI)) {
+    avrdude_message(MSG_INFO, "%s: jtag3_initialize(): part %s has no ISP interface\n",
+	    progname, p->desc);
+    return -1;
+  }
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
 
-  // if (p->flags & AVRPART_HAS_DW)
-  //   parm[0] = PARM3_ARCH_TINY;
-  // else
-  //   parm[0] = PARM3_ARCH_MEGA;
-  // if (jtag3_setparm(pgm, SCOPE_AVR, 0, PARM3_ARCH, parm, 1) < 0) {
-  //   pgm->cookie = mycookie;
-  //   return -1;
-  // }
+  if (p->flags & AVRPART_HAS_DW)
+    parm[0] = PARM3_ARCH_TINY;
+  else
+    parm[0] = PARM3_ARCH_MEGA;
+  if (jtag3_setparm(pgm, SCOPE_AVR, 0, PARM3_ARCH, parm, 1) < 0) {
+    pgm->cookie = mycookie;
+    return -1;
+  }
 
-  // parm[0] = PARM3_SESS_PROGRAMMING;
-  // if (jtag3_setparm(pgm, SCOPE_AVR, 0, PARM3_SESS_PURPOSE, parm, 1) < 0) {
-  //   pgm->cookie = mycookie;
-  //   return -1;
-  // }
+  parm[0] = PARM3_SESS_PROGRAMMING;
+  if (jtag3_setparm(pgm, SCOPE_AVR, 0, PARM3_SESS_PURPOSE, parm, 1) < 0) {
+    pgm->cookie = mycookie;
+    return -1;
+  }
 
-  // parm[0] = PARM3_CONN_ISP;
-  // if (jtag3_setparm(pgm, SCOPE_AVR, 1, PARM3_CONNECTION, parm, 1) < 0) {
-  //   pgm->cookie = mycookie;
-  //   return -1;
-  // }
+  parm[0] = PARM3_CONN_ISP;
+  if (jtag3_setparm(pgm, SCOPE_AVR, 1, PARM3_CONNECTION, parm, 1) < 0) {
+    pgm->cookie = mycookie;
+    return -1;
+  }
 
-  // parm[0] = SCOPE_AVR_ISP;
-  // parm[1] = 0x1e;
-  // jtag3_send(pgm, parm, 2);
+  parm[0] = SCOPE_AVR_ISP;
+  parm[1] = 0x1e;
+  jtag3_send(pgm, parm, 2);
 
-  // if (jtag3_recv(pgm, &resp) > 0)
-  //   free(resp);
+  if (jtag3_recv(pgm, &resp) > 0)
+    free(resp);
 
-  // pgm->cookie = mycookie;
+  pgm->cookie = mycookie;
 
-  // /*
-  //  * Examine the avrpart's memory definitions, and initialize the page
-  //  * caches.  For devices/memory that are not page oriented, treat
-  //  * them as page size 1 for EEPROM, and 2 for flash.
-  //  */
-  // PDATA(pgm)->flash_pagesize = 2;
-  // PDATA(pgm)->eeprom_pagesize = 1;
- //  for (ln = lfirst(p->mem); ln; ln = lnext(ln)) {
- //    m = ldata(ln);
- //    if (strcmp(m->desc, "flash") == 0) {
- //      if (m->page_size > 0) {
- //        if (m->page_size > 256)
- //          PDATA(pgm)->flash_pagesize = 256;
- //        else
- //          PDATA(pgm)->flash_pagesize = m->page_size;
- //      }
- //    } else if (strcmp(m->desc, "eeprom") == 0) {
- //      if (m->page_size > 0)
-	// PDATA(pgm)->eeprom_pagesize = m->page_size;
- //    }
- //  }
- //  free(PDATA(pgm)->flash_pagecache);
- //  free(PDATA(pgm)->eeprom_pagecache);
- //  if ((PDATA(pgm)->flash_pagecache = malloc(PDATA(pgm)->flash_pagesize)) == NULL) {
- //    avrdude_message(MSG_INFO, "%s: stk500hv_initialize(): Out of memory\n",
-	//     progname);
- //    return -1;
- //  }
- //  if ((PDATA(pgm)->eeprom_pagecache = malloc(PDATA(pgm)->eeprom_pagesize)) == NULL) {
- //    avrdude_message(MSG_INFO, "%s: stk500hv_initialize(): Out of memory\n",
-	//     progname);
- //    free(PDATA(pgm)->flash_pagecache);
- //    return -1;
- //  }
- //  PDATA(pgm)->flash_pageaddr = PDATA(pgm)->eeprom_pageaddr = (unsigned long)-1L;
+  /*
+   * Examine the avrpart's memory definitions, and initialize the page
+   * caches.  For devices/memory that are not page oriented, treat
+   * them as page size 1 for EEPROM, and 2 for flash.
+   */
+  PDATA(pgm)->flash_pagesize = 2;
+  PDATA(pgm)->eeprom_pagesize = 1;
+  for (ln = lfirst(p->mem); ln; ln = lnext(ln)) {
+    m = ldata(ln);
+    if (strcmp(m->desc, "flash") == 0) {
+      if (m->page_size > 0) {
+        if (m->page_size > 256)
+          PDATA(pgm)->flash_pagesize = 256;
+        else
+          PDATA(pgm)->flash_pagesize = m->page_size;
+      }
+    } else if (strcmp(m->desc, "eeprom") == 0) {
+      if (m->page_size > 0)
+	PDATA(pgm)->eeprom_pagesize = m->page_size;
+    }
+  }
+  free(PDATA(pgm)->flash_pagecache);
+  free(PDATA(pgm)->eeprom_pagecache);
+  if ((PDATA(pgm)->flash_pagecache = malloc(PDATA(pgm)->flash_pagesize)) == NULL) {
+    avrdude_message(MSG_INFO, "%s: stk500hv_initialize(): Out of memory\n",
+	    progname);
+    return -1;
+  }
+  if ((PDATA(pgm)->eeprom_pagecache = malloc(PDATA(pgm)->eeprom_pagesize)) == NULL) {
+    avrdude_message(MSG_INFO, "%s: stk500hv_initialize(): Out of memory\n",
+	    progname);
+    free(PDATA(pgm)->flash_pagecache);
+    return -1;
+  }
+  PDATA(pgm)->flash_pageaddr = PDATA(pgm)->eeprom_pageaddr = (unsigned long)-1L;
 
- //  return pgm->program_enable(pgm, p);
+  return pgm->program_enable(pgm, p);
 }
 
 
@@ -1696,10 +1657,8 @@ static int stk500v2_open(PROGRAMMER * pgm, char * port)
   stk500v2_drain(pgm, 0);
 
   if (pgm->bitclock != 0.0) {
-    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0) {
-      serial_close(&pgm->fd);
+    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
       return -1;
-    }
   }
 
   return 0;
@@ -1756,10 +1715,8 @@ static int stk600_open(PROGRAMMER * pgm, char * port)
   stk500v2_drain(pgm, 0);
 
   if (pgm->bitclock != 0.0) {
-    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0) {
-      serial_close(&pgm->fd);
+    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
       return -1;
-    }
   }
 
   return 0;
@@ -1883,7 +1840,7 @@ static int stk500hv_read_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
     if (stk500v2_loadaddr(pgm, use_ext_addr | (paddr >> addrshift)) < 0)
         return -1;
   } else {
-    buf[1] = (char)addr;
+    buf[1] = addr;
   }
 
   avrdude_message(MSG_NOTICE2, "%s: stk500hv_read_byte(): Sending read memory command: ",
@@ -2138,7 +2095,7 @@ static int stk500hv_write_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
     if (stk500v2_loadaddr(pgm, use_ext_addr | (paddr >> addrshift)) < 0)
         return -1;
   } else {
-    buf[1] = (char)addr;
+    buf[1] = addr;
     buf[2] = data;
     if (mode == PPMODE) {
       buf[3] = pulsewidth;
@@ -2211,6 +2168,9 @@ static int stk500isp_write_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
       paddr = addr & ~(pagesize - 1);
       paddr_ptr = &PDATA(pgm)->flash_pageaddr;
       cache_ptr = PDATA(pgm)->flash_pagecache;
+      if ((mem->mode & 1) == 0)
+	/* old, unpaged device, really write single bytes */
+	pagesize = 1;
     } else {
       pagesize = mem->page_size;
       if (pagesize == 0)
@@ -2299,7 +2259,6 @@ static int stk500v2_paged_write(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
                                 unsigned int page_size,
                                 unsigned int addr, unsigned int n_bytes)
 {
-// static int page = 0;
   unsigned int block_size, last_addr, addrshift, use_ext_addr;
   unsigned int maxaddr = addr + n_bytes;
   unsigned char commandbuf[10];
@@ -2307,16 +2266,6 @@ static int stk500v2_paged_write(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
   unsigned char cmds[4];
   int result;
   OPCODE * rop, * wop;
-
-  // Prusa3D workaround for a bug in the USB communication controller. The semicolon character is used as an initial character
-  // for special command sequences for the USB communication chip. The early releases of the USB communication chip had
-  // a bug, which produced a 0x0ff character after the semicolon. The patch is to program the semicolons by flashing
-  // firmware blocks twice: First the low nibbles of semicolons, second the high nibbles of the semicolon characters.
-  //
-  // Inside the 2nd round of a firmware block flashing?
-  bool prusa3d_semicolon_workaround_round2 = false;
-  // Buffer containing the other nibbles of semicolons to be flashed in the 2nd round.
-  unsigned char prusa3d_semicolon_workaround_round2_data[256];
 
   DEBUG("STK500V2: stk500v2_paged_write(..,%s,%u,%u,%u)\n",
         m->desc, page_size, addr, n_bytes);
@@ -2354,7 +2303,7 @@ static int stk500v2_paged_write(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
 
   // if the memory is paged, load the appropriate commands into the buffer
   if (m->mode & 0x01) {
-    commandbuf[3] = m->mode | 0x80;   // yes, write the page to flash
+    commandbuf[3] = m->mode | 0x80;		// yes, write the page to flash
 
     if (m->op[AVR_OP_LOADPAGE_LO] == NULL) {
       avrdude_message(MSG_INFO, "%s: stk500v2_paged_write: loadpage instruction not defined for part \"%s\"\n",
@@ -2375,7 +2324,7 @@ static int stk500v2_paged_write(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
   // otherwise, we need to load different commands in
   } 
   else {
-    commandbuf[3] = m->mode | 0x80;   // yes, write the words to flash
+    commandbuf[3] = m->mode | 0x80;		// yes, write the words to flash
 
     if (wop == NULL) {
       avrdude_message(MSG_INFO, "%s: stk500v2_paged_write: write instruction not defined for part \"%s\"\n",
@@ -2399,9 +2348,9 @@ static int stk500v2_paged_write(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
   commandbuf[8] = m->readback[0];
   commandbuf[9] = m->readback[1];
 
-  last_addr=UINT_MAX;   /* impossible address */
+  last_addr=UINT_MAX;		/* impossible address */
 
-  for (; addr < maxaddr; addr += prusa3d_semicolon_workaround_round2 ? 0 : page_size) {
+  for (; addr < maxaddr; addr += page_size) {
     if ((maxaddr - addr) < page_size)
       block_size = maxaddr - addr;
     else
@@ -2414,29 +2363,13 @@ static int stk500v2_paged_write(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
     buf[1] = block_size >> 8;
     buf[2] = block_size & 0xff;
 
-    if((last_addr==UINT_MAX)||(last_addr+block_size != addr)||prusa3d_semicolon_workaround_round2){
+    if((last_addr==UINT_MAX)||(last_addr+block_size != addr)){
       if (stk500v2_loadaddr(pgm, use_ext_addr | (addr >> addrshift)) < 0)
         return -1;
     }
     last_addr=addr;
 
-    if (prusa3d_semicolon_workaround_round2) {
-        // printf("Round 2: address %d\r\n", addr);
-        memcpy(buf+10, prusa3d_semicolon_workaround_round2_data, block_size);
-        prusa3d_semicolon_workaround_round2 = false;
-    } else {
-        for (size_t i = 0; i < block_size; ++ i) {
-            unsigned char b = m->buf[addr+i];
-            if (b == ';') {
-              // printf("semicolon at %d %d\r\n", addr, i);
-              prusa3d_semicolon_workaround_round2_data[i] = b | 0x0f0;
-              b |= 0x0f;
-              prusa3d_semicolon_workaround_round2 = true;
-            } else 
-              prusa3d_semicolon_workaround_round2_data[i] = 0x0ff;
-            buf[i+10] = b;
-        }
-    }
+    memcpy(buf+10,m->buf+addr, block_size);
 
     result = stk500v2_command(pgm,buf,block_size+10, sizeof(buf));
     if (result < 0) {
@@ -2834,10 +2767,10 @@ static int stk500v2_set_fosc(PROGRAMMER * pgm, double v)
                       progname, v, unit, STK500V2_XTAL / 2e6);
       fosc = STK500V2_XTAL / 2;
     } else
-      fosc = (int)v;
+      fosc = (unsigned)v;
 
     for (idx = 0; idx < sizeof(ps) / sizeof(ps[0]); idx++) {
-      if (fosc >= (int)(STK500V2_XTAL / (256 * ps[idx] * 2))) {
+      if (fosc >= STK500V2_XTAL / (256 * ps[idx] * 2)) {
         /* this prescaler value can handle our frequency */
         prescale = idx + 1;
         cmatch = (unsigned)(STK500V2_XTAL / (2 * fosc * ps[idx])) - 1;
@@ -3066,8 +2999,8 @@ static int stk600_set_fosc(PROGRAMMER * pgm, double v)
 {
   unsigned int oct, dac;
 
-  oct = (unsigned)(1.443 * log(v / 1039.0));
-  dac = (unsigned)(2048.0 - (2078.0 * pow(2, (double)(10 + oct))) / v);
+  oct = 1.443 * log(v / 1039.0);
+  dac = 2048 - (2078.0 * pow(2, (double)(10 + oct))) / v;
 
   return stk500v2_setparm2(pgm, PARAM2_CLOCK_CONF, (oct << 12) | (dac << 2));
 }
@@ -3076,7 +3009,7 @@ static int stk600_set_sck_period(PROGRAMMER * pgm, double v)
 {
   unsigned int sck;
 
-  sck = (unsigned)ceil((16e6 / (2 * 1.0 / v)) - 1);
+  sck = ceil((16e6 / (2 * 1.0 / v)) - 1);
 
   if (sck >= 4096)
     sck = 4095;
@@ -3094,7 +3027,7 @@ static int stk500v2_jtag3_set_sck_period(PROGRAMMER * pgm, double v)
   else if (v > 1E-3)
     sck = 1;
   else
-    sck = (unsigned)(1.0 / (1000.0 * v));
+    sck = 1.0 / (1000.0 * v);
 
   value[0] = CMD_SET_SCK;
   value[1] = sck & 0xff;
@@ -3144,7 +3077,7 @@ static int stk500v2_setparm_real(PROGRAMMER * pgm, unsigned char parm, unsigned 
 
 static int stk500v2_setparm(PROGRAMMER * pgm, unsigned char parm, unsigned char value)
 {
-  unsigned char current_value = 0;
+  unsigned char current_value;
   int res;
 
   res = stk500v2_getparm(pgm, parm, &current_value);
@@ -3215,15 +3148,8 @@ static const char *stk600_get_cardname(const struct carddata *table,
 
 static void stk500v2_display(PROGRAMMER * pgm, const char * p)
 {
-  unsigned char maj = 0;
-  unsigned char min = 0;
-  unsigned char hdw = 0;
-  unsigned char topcard = 0;
-  unsigned char maj_s1 = 0;
-  unsigned char min_s1 = 0;
-  unsigned char maj_s2 = 0;
-  unsigned char min_s2 = 0;
-  unsigned int rev = 0;
+  unsigned char maj, min, hdw, topcard, maj_s1, min_s1, maj_s2, min_s2;
+  unsigned int rev;
   const char *topcard_name, *pgmname;
 
   switch (PDATA(pgm)->pgmtype) {
@@ -3302,37 +3228,28 @@ f_to_kHz_MHz(double f, const char **unit)
 
 static void stk500v2_print_parms1(PROGRAMMER * pgm, const char * p)
 {
-  unsigned char vtarget = 0;
-  unsigned char vadjust = 0;
-  unsigned char sck_duration = 0;
-  unsigned char osc_pscale = 0;
-  unsigned char osc_cmatch = 0;
-  unsigned varef = 0;
-  unsigned sck_stk600 = 0;
-  unsigned clock_conf = 0;
-  unsigned dac, oct;
-  // unsigned char vtarget_jtag[4];
+  unsigned char vtarget, vadjust, osc_pscale, osc_cmatch, sck_duration =0; //XXX 0 is not correct, check caller
+  unsigned int sck_stk600, clock_conf, dac, oct, varef;
+  unsigned char vtarget_jtag[4];
   int prescale;
   double f;
   const char *unit;
-  // void *mycookie;
+  void *mycookie;
 
   if (PDATA(pgm)->pgmtype == PGMTYPE_JTAGICE_MKII) {
-    return;
-    // mycookie = pgm->cookie;
-    // pgm->cookie = PDATA(pgm)->chained_pdata;
-    // jtagmkII_getparm(pgm, PAR_OCD_VTARGET, vtarget_jtag);
-    // pgm->cookie = mycookie;
-    // avrdude_message(MSG_INFO, "%sVtarget         : %.1f V\n", p,
-	   //  b2_to_u16(vtarget_jtag) / 1000.0);
+    mycookie = pgm->cookie;
+    pgm->cookie = PDATA(pgm)->chained_pdata;
+    jtagmkII_getparm(pgm, PAR_OCD_VTARGET, vtarget_jtag);
+    pgm->cookie = mycookie;
+    avrdude_message(MSG_INFO, "%sVtarget         : %.1f V\n", p,
+	    b2_to_u16(vtarget_jtag) / 1000.0);
   } else if (PDATA(pgm)->pgmtype == PGMTYPE_JTAGICE3) {
-    return;
-    // mycookie = pgm->cookie;
-    // pgm->cookie = PDATA(pgm)->chained_pdata;
-    // jtag3_getparm(pgm, SCOPE_GENERAL, 1, PARM3_VTARGET, vtarget_jtag, 2);
-    // pgm->cookie = mycookie;
-    // avrdude_message(MSG_INFO, "%sVtarget         : %.1f V\n", p,
-	   //  b2_to_u16(vtarget_jtag) / 1000.0);
+    mycookie = pgm->cookie;
+    pgm->cookie = PDATA(pgm)->chained_pdata;
+    jtag3_getparm(pgm, SCOPE_GENERAL, 1, PARM3_VTARGET, vtarget_jtag, 2);
+    pgm->cookie = mycookie;
+    avrdude_message(MSG_INFO, "%sVtarget         : %.1f V\n", p,
+	    b2_to_u16(vtarget_jtag) / 1000.0);
 
   } else {
     stk500v2_getparm(pgm, PARAM_VTARGET, &vtarget);
@@ -3452,72 +3369,71 @@ static int stk500v2_perform_osccal(PROGRAMMER * pgm)
  */
 static int stk500v2_jtagmkII_open(PROGRAMMER * pgm, char * port)
 {
-  return -1;
-//   union pinfo pinfo;
-//   void *mycookie;
-//   int rv;
+  union pinfo pinfo;
+  void *mycookie;
+  int rv;
 
-//   avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtagmkII_open()\n", progname);
+  avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtagmkII_open()\n", progname);
 
-//   /*
-//    * The JTAG ICE mkII always starts with a baud rate of 19200 Bd upon
-//    * attaching.  If the config file or command-line parameters specify
-//    * a higher baud rate, we switch to it later on, after establishing
-//    * the connection with the ICE.
-//    */
-//   pinfo.baud = 19200;
+  /*
+   * The JTAG ICE mkII always starts with a baud rate of 19200 Bd upon
+   * attaching.  If the config file or command-line parameters specify
+   * a higher baud rate, we switch to it later on, after establishing
+   * the connection with the ICE.
+   */
+  pinfo.baud = 19200;
 
-//   /*
-//    * If the port name starts with "usb", divert the serial routines
-//    * to the USB ones.  The serial_open() function for USB overrides
-//    * the meaning of the "baud" parameter to be the USB device ID to
-//    * search for.
-//    */
-//   if (strncmp(port, "usb", 3) == 0) {
-// #if defined(HAVE_LIBUSB)
-//     serdev = &usb_serdev;
-//     pinfo.usbinfo.vid = USB_VENDOR_ATMEL;
-//     pinfo.usbinfo.flags = 0;
-//     pinfo.usbinfo.pid = USB_DEVICE_JTAGICEMKII;
-//     pgm->fd.usb.max_xfer = USBDEV_MAX_XFER_MKII;
-//     pgm->fd.usb.rep = USBDEV_BULK_EP_READ_MKII;
-//     pgm->fd.usb.wep = USBDEV_BULK_EP_WRITE_MKII;
-//     pgm->fd.usb.eep = 0;           /* no seperate EP for events */
-// #else
-//     avrdude_message(MSG_INFO, "avrdude was compiled without usb support.\n");
-//     return -1;
-// #endif
-//   }
+  /*
+   * If the port name starts with "usb", divert the serial routines
+   * to the USB ones.  The serial_open() function for USB overrides
+   * the meaning of the "baud" parameter to be the USB device ID to
+   * search for.
+   */
+  if (strncmp(port, "usb", 3) == 0) {
+#if defined(HAVE_LIBUSB)
+    serdev = &usb_serdev;
+    pinfo.usbinfo.vid = USB_VENDOR_ATMEL;
+    pinfo.usbinfo.flags = 0;
+    pinfo.usbinfo.pid = USB_DEVICE_JTAGICEMKII;
+    pgm->fd.usb.max_xfer = USBDEV_MAX_XFER_MKII;
+    pgm->fd.usb.rep = USBDEV_BULK_EP_READ_MKII;
+    pgm->fd.usb.wep = USBDEV_BULK_EP_WRITE_MKII;
+    pgm->fd.usb.eep = 0;           /* no seperate EP for events */
+#else
+    avrdude_message(MSG_INFO, "avrdude was compiled without usb support.\n");
+    return -1;
+#endif
+  }
 
-//   strcpy(pgm->port, port);
-//   if (serial_open(port, pinfo, &pgm->fd)==-1) {
-//     return -1;
-//   }
+  strcpy(pgm->port, port);
+  if (serial_open(port, pinfo, &pgm->fd)==-1) {
+    return -1;
+  }
 
-//   /*
-//    * drain any extraneous input
-//    */
-//   stk500v2_drain(pgm, 0);
+  /*
+   * drain any extraneous input
+   */
+  stk500v2_drain(pgm, 0);
 
-//   mycookie = pgm->cookie;
-//   pgm->cookie = PDATA(pgm)->chained_pdata;
-//   if ((rv = jtagmkII_getsync(pgm, EMULATOR_MODE_SPI)) != 0) {
-//     if (rv != JTAGII_GETSYNC_FAIL_GRACEFUL)
-//         avrdude_message(MSG_INFO, "%s: failed to sync with the JTAG ICE mkII in ISP mode\n",
-//                         progname);
-//     pgm->cookie = mycookie;
-//     return -1;
-//   }
-//   pgm->cookie = mycookie;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  if ((rv = jtagmkII_getsync(pgm, EMULATOR_MODE_SPI)) != 0) {
+    if (rv != JTAGII_GETSYNC_FAIL_GRACEFUL)
+        avrdude_message(MSG_INFO, "%s: failed to sync with the JTAG ICE mkII in ISP mode\n",
+                        progname);
+    pgm->cookie = mycookie;
+    return -1;
+  }
+  pgm->cookie = mycookie;
 
-//   PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE_MKII;
+  PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE_MKII;
 
-//   if (pgm->bitclock != 0.0) {
-//     if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
-//       return -1;
-//   }
+  if (pgm->bitclock != 0.0) {
+    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
+      return -1;
+  }
 
-//   return 0;
+  return 0;
 }
 
 
@@ -3526,14 +3442,14 @@ static int stk500v2_jtagmkII_open(PROGRAMMER * pgm, char * port)
  */
 static void stk500v2_jtagmkII_close(PROGRAMMER * pgm)
 {
-  // void *mycookie;
+  void *mycookie;
 
-  // avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtagmkII_close()\n", progname);
+  avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtagmkII_close()\n", progname);
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // jtagmkII_close(pgm);
-  // pgm->cookie = mycookie;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  jtagmkII_close(pgm);
+  pgm->cookie = mycookie;
 }
 
 
@@ -3542,14 +3458,14 @@ static void stk500v2_jtagmkII_close(PROGRAMMER * pgm)
  */
 static void stk500v2_jtag3_close(PROGRAMMER * pgm)
 {
-  // void *mycookie;
+  void *mycookie;
 
-  // avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtag3_close()\n", progname);
+  avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtag3_close()\n", progname);
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // jtag3_close(pgm);
-  // pgm->cookie = mycookie;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  jtag3_close(pgm);
+  pgm->cookie = mycookie;
 }
 
 
@@ -3565,70 +3481,69 @@ static void stk500v2_jtag3_close(PROGRAMMER * pgm)
  */
 static int stk500v2_dragon_isp_open(PROGRAMMER * pgm, char * port)
 {
-  return -1;
-//   union pinfo pinfo;
-//   void *mycookie;
+  union pinfo pinfo;
+  void *mycookie;
 
-//   avrdude_message(MSG_NOTICE2, "%s: stk500v2_dragon_isp_open()\n", progname);
+  avrdude_message(MSG_NOTICE2, "%s: stk500v2_dragon_isp_open()\n", progname);
 
-//   /*
-//    * The JTAG ICE mkII always starts with a baud rate of 19200 Bd upon
-//    * attaching.  If the config file or command-line parameters specify
-//    * a higher baud rate, we switch to it later on, after establishing
-//    * the connection with the ICE.
-//    */
-//   pinfo.baud = 19200;
+  /*
+   * The JTAG ICE mkII always starts with a baud rate of 19200 Bd upon
+   * attaching.  If the config file or command-line parameters specify
+   * a higher baud rate, we switch to it later on, after establishing
+   * the connection with the ICE.
+   */
+  pinfo.baud = 19200;
 
-//   /*
-//    * If the port name starts with "usb", divert the serial routines
-//    * to the USB ones.  The serial_open() function for USB overrides
-//    * the meaning of the "baud" parameter to be the USB device ID to
-//    * search for.
-//    */
-//   if (strncmp(port, "usb", 3) == 0) {
-// #if defined(HAVE_LIBUSB)
-//     serdev = &usb_serdev;
-//     pinfo.usbinfo.vid = USB_VENDOR_ATMEL;
-//     pinfo.usbinfo.flags = 0;
-//     pinfo.usbinfo.pid = USB_DEVICE_AVRDRAGON;
-//     pgm->fd.usb.max_xfer = USBDEV_MAX_XFER_MKII;
-//     pgm->fd.usb.rep = USBDEV_BULK_EP_READ_MKII;
-//     pgm->fd.usb.wep = USBDEV_BULK_EP_WRITE_MKII;
-//     pgm->fd.usb.eep = 0;           /* no seperate EP for events */
-// #else
-//     avrdude_message(MSG_INFO, "avrdude was compiled without usb support.\n");
-//     return -1;
-// #endif
-//   }
+  /*
+   * If the port name starts with "usb", divert the serial routines
+   * to the USB ones.  The serial_open() function for USB overrides
+   * the meaning of the "baud" parameter to be the USB device ID to
+   * search for.
+   */
+  if (strncmp(port, "usb", 3) == 0) {
+#if defined(HAVE_LIBUSB)
+    serdev = &usb_serdev;
+    pinfo.usbinfo.vid = USB_VENDOR_ATMEL;
+    pinfo.usbinfo.flags = 0;
+    pinfo.usbinfo.pid = USB_DEVICE_AVRDRAGON;
+    pgm->fd.usb.max_xfer = USBDEV_MAX_XFER_MKII;
+    pgm->fd.usb.rep = USBDEV_BULK_EP_READ_MKII;
+    pgm->fd.usb.wep = USBDEV_BULK_EP_WRITE_MKII;
+    pgm->fd.usb.eep = 0;           /* no seperate EP for events */
+#else
+    avrdude_message(MSG_INFO, "avrdude was compiled without usb support.\n");
+    return -1;
+#endif
+  }
 
-//   strcpy(pgm->port, port);
-//   if (serial_open(port, pinfo, &pgm->fd)==-1) {
-//     return -1;
-//   }
+  strcpy(pgm->port, port);
+  if (serial_open(port, pinfo, &pgm->fd)==-1) {
+    return -1;
+  }
 
-//   /*
-//    * drain any extraneous input
-//    */
-//   stk500v2_drain(pgm, 0);
+  /*
+   * drain any extraneous input
+   */
+  stk500v2_drain(pgm, 0);
 
-//   mycookie = pgm->cookie;
-//   pgm->cookie = PDATA(pgm)->chained_pdata;
-//   if (jtagmkII_getsync(pgm, EMULATOR_MODE_SPI) != 0) {
-//     avrdude_message(MSG_INFO, "%s: failed to sync with the AVR Dragon in ISP mode\n",
-//             progname);
-//     pgm->cookie = mycookie;
-//     return -1;
-//   }
-//   pgm->cookie = mycookie;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  if (jtagmkII_getsync(pgm, EMULATOR_MODE_SPI) != 0) {
+    avrdude_message(MSG_INFO, "%s: failed to sync with the AVR Dragon in ISP mode\n",
+            progname);
+    pgm->cookie = mycookie;
+    return -1;
+  }
+  pgm->cookie = mycookie;
 
-//   PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE_MKII;
+  PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE_MKII;
 
-//   if (pgm->bitclock != 0.0) {
-//     if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
-//       return -1;
-//   }
+  if (pgm->bitclock != 0.0) {
+    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
+      return -1;
+  }
 
-//   return 0;
+  return 0;
 }
 
 
@@ -3644,70 +3559,69 @@ static int stk500v2_dragon_isp_open(PROGRAMMER * pgm, char * port)
  */
 static int stk500v2_dragon_hv_open(PROGRAMMER * pgm, char * port)
 {
-  return -1;
-//   union pinfo pinfo;
-//   void *mycookie;
+  union pinfo pinfo;
+  void *mycookie;
 
-//   avrdude_message(MSG_NOTICE2, "%s: stk500v2_dragon_hv_open()\n", progname);
+  avrdude_message(MSG_NOTICE2, "%s: stk500v2_dragon_hv_open()\n", progname);
 
-//   /*
-//    * The JTAG ICE mkII always starts with a baud rate of 19200 Bd upon
-//    * attaching.  If the config file or command-line parameters specify
-//    * a higher baud rate, we switch to it later on, after establishing
-//    * the connection with the ICE.
-//    */
-//   pinfo.baud = 19200;
+  /*
+   * The JTAG ICE mkII always starts with a baud rate of 19200 Bd upon
+   * attaching.  If the config file or command-line parameters specify
+   * a higher baud rate, we switch to it later on, after establishing
+   * the connection with the ICE.
+   */
+  pinfo.baud = 19200;
 
-//   /*
-//    * If the port name starts with "usb", divert the serial routines
-//    * to the USB ones.  The serial_open() function for USB overrides
-//    * the meaning of the "baud" parameter to be the USB device ID to
-//    * search for.
-//    */
-//   if (strncmp(port, "usb", 3) == 0) {
-// #if defined(HAVE_LIBUSB)
-//     serdev = &usb_serdev;
-//     pinfo.usbinfo.vid = USB_VENDOR_ATMEL;
-//     pinfo.usbinfo.flags = 0;
-//     pinfo.usbinfo.pid = USB_DEVICE_AVRDRAGON;
-//     pgm->fd.usb.max_xfer = USBDEV_MAX_XFER_MKII;
-//     pgm->fd.usb.rep = USBDEV_BULK_EP_READ_MKII;
-//     pgm->fd.usb.wep = USBDEV_BULK_EP_WRITE_MKII;
-//     pgm->fd.usb.eep = 0;           /* no seperate EP for events */
-// #else
-//     avrdude_message(MSG_INFO, "avrdude was compiled without usb support.\n");
-//     return -1;
-// #endif
-//   }
+  /*
+   * If the port name starts with "usb", divert the serial routines
+   * to the USB ones.  The serial_open() function for USB overrides
+   * the meaning of the "baud" parameter to be the USB device ID to
+   * search for.
+   */
+  if (strncmp(port, "usb", 3) == 0) {
+#if defined(HAVE_LIBUSB)
+    serdev = &usb_serdev;
+    pinfo.usbinfo.vid = USB_VENDOR_ATMEL;
+    pinfo.usbinfo.flags = 0;
+    pinfo.usbinfo.pid = USB_DEVICE_AVRDRAGON;
+    pgm->fd.usb.max_xfer = USBDEV_MAX_XFER_MKII;
+    pgm->fd.usb.rep = USBDEV_BULK_EP_READ_MKII;
+    pgm->fd.usb.wep = USBDEV_BULK_EP_WRITE_MKII;
+    pgm->fd.usb.eep = 0;           /* no seperate EP for events */
+#else
+    avrdude_message(MSG_INFO, "avrdude was compiled without usb support.\n");
+    return -1;
+#endif
+  }
 
-//   strcpy(pgm->port, port);
-//   if (serial_open(port, pinfo, &pgm->fd)==-1) {
-//     return -1;
-//   }
+  strcpy(pgm->port, port);
+  if (serial_open(port, pinfo, &pgm->fd)==-1) {
+    return -1;
+  }
 
-//   /*
-//    * drain any extraneous input
-//    */
-//   stk500v2_drain(pgm, 0);
+  /*
+   * drain any extraneous input
+   */
+  stk500v2_drain(pgm, 0);
 
-//   mycookie = pgm->cookie;
-//   pgm->cookie = PDATA(pgm)->chained_pdata;
-//   if (jtagmkII_getsync(pgm, EMULATOR_MODE_HV) != 0) {
-//     avrdude_message(MSG_INFO, "%s: failed to sync with the AVR Dragon in HV mode\n",
-//             progname);
-//     pgm->cookie = mycookie;
-//     return -1;
-//   }
-//   pgm->cookie = mycookie;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  if (jtagmkII_getsync(pgm, EMULATOR_MODE_HV) != 0) {
+    avrdude_message(MSG_INFO, "%s: failed to sync with the AVR Dragon in HV mode\n",
+            progname);
+    pgm->cookie = mycookie;
+    return -1;
+  }
+  pgm->cookie = mycookie;
 
-//   PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE_MKII;
+  PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE_MKII;
 
-//   if (pgm->bitclock != 0.0) {
-//     if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
-//       return -1;
-//   }
+  if (pgm->bitclock != 0.0) {
+    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
+      return -1;
+  }
 
-//   return 0;
+  return 0;
 }
 
 /*
@@ -3722,34 +3636,33 @@ static int stk500v2_dragon_hv_open(PROGRAMMER * pgm, char * port)
  */
 static int stk500v2_jtag3_open(PROGRAMMER * pgm, char * port)
 {
-  return -1;
-  // void *mycookie;
-  // int rv;
+  void *mycookie;
+  int rv;
 
-  // avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtag3_open()\n", progname);
+  avrdude_message(MSG_NOTICE2, "%s: stk500v2_jtag3_open()\n", progname);
 
-  // if (jtag3_open_common(pgm, port) < 0)
-  //   return -1;
+  if (jtag3_open_common(pgm, port) < 0)
+    return -1;
 
-  // mycookie = pgm->cookie;
-  // pgm->cookie = PDATA(pgm)->chained_pdata;
-  // if ((rv = jtag3_getsync(pgm, 42)) != 0) {
-  //   if (rv != JTAGII_GETSYNC_FAIL_GRACEFUL)
-  //       avrdude_message(MSG_INFO, "%s: failed to sync with the JTAGICE3 in ISP mode\n",
-  //                       progname);
-  //   pgm->cookie = mycookie;
-  //   return -1;
-  // }
-  // pgm->cookie = mycookie;
+  mycookie = pgm->cookie;
+  pgm->cookie = PDATA(pgm)->chained_pdata;
+  if ((rv = jtag3_getsync(pgm, 42)) != 0) {
+    if (rv != JTAGII_GETSYNC_FAIL_GRACEFUL)
+        avrdude_message(MSG_INFO, "%s: failed to sync with the JTAGICE3 in ISP mode\n",
+                        progname);
+    pgm->cookie = mycookie;
+    return -1;
+  }
+  pgm->cookie = mycookie;
 
-  // PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE3;
+  PDATA(pgm)->pgmtype = PGMTYPE_JTAGICE3;
 
-  // if (pgm->bitclock != 0.0) {
-  //   if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
-  //     return -1;
-  // }
+  if (pgm->bitclock != 0.0) {
+    if (pgm->set_sck_period(pgm, pgm->bitclock) != 0)
+      return -1;
+  }
 
-  // return 0;
+  return 0;
 }
 
 
@@ -3978,10 +3891,10 @@ static int stk600_xprog_write_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
     b[0] = XPRG_CMD_WRITE_MEM;
     b[1] = memcode;
     b[2] = 0;			/* pagemode: non-paged write */
-    b[3] = (char)(addr >> 24);
-    b[4] = (char)(addr >> 16);
-    b[5] = (char)(addr >> 8);
-    b[6] = (char)addr;
+    b[3] = addr >> 24;
+    b[4] = addr >> 16;
+    b[5] = addr >> 8;
+    b[6] = addr;
     b[7] = 0;
     b[8] = write_size;
     b[9] = data;
@@ -4026,10 +3939,10 @@ static int stk600_xprog_read_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
     addr += mem->offset;
 
     b[0] = XPRG_CMD_READ_MEM;
-    b[2] = (char)(addr >> 24);
-    b[3] = (char)(addr >> 16);
-    b[4] = (char)(addr >> 8);
-    b[5] = (char)addr;
+    b[2] = addr >> 24;
+    b[3] = addr >> 16;
+    b[4] = addr >> 8;
+    b[5] = addr;
     b[6] = 0;
     b[7] = 1;
     if (stk600_xprog_command(pgm, b, 8, 3) < 0) {
@@ -4417,7 +4330,6 @@ const char stk500v2_desc[] = "Atmel STK500 Version 2.x firmware";
 
 void stk500v2_initpgm(PROGRAMMER * pgm)
 {
-
   strcpy(pgm->type, "STK500V2");
 
   /*
@@ -4450,7 +4362,6 @@ void stk500v2_initpgm(PROGRAMMER * pgm)
   pgm->setup          = stk500v2_setup;
   pgm->teardown       = stk500v2_teardown;
   pgm->page_size      = 256;
-  pgm->set_upload_size= stk500v2_set_upload_size;
 }
 
 const char stk500pp_desc[] = "Atmel STK500 V2 in parallel programming mode";
@@ -4803,15 +4714,5 @@ void stk500v2_jtag3_initpgm(PROGRAMMER * pgm)
   pgm->setup          = stk500v2_jtag3_setup;
   pgm->teardown       = stk500v2_jtag3_teardown;
   pgm->page_size      = 256;
-}
-
-void stk500v2_set_upload_size(PROGRAMMER * pgm, int size)
-{
-	unsigned char buf[16];
-	buf[0] = CMD_SET_UPLOAD_SIZE_PRUSA3D;
-	buf[1] = size & 0xff;
-	buf[2] = size >> 8;
-	buf[3] = size >> 16;
-	stk500v2_command(pgm, buf, 4, sizeof(buf));
 }
 

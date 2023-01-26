@@ -19,3 +19,7 @@ build-linux/*
 deps/build-linux/*
 **/.DS_Store
 **/.idea/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt

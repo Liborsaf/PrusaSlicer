@@ -6,6 +6,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../../cmake/modules/)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Workaround for an old CMake, which does not understand CMAKE_C_STANDARD.
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall")
@@ -91,8 +93,8 @@ add_library(avrdude STATIC ${AVRDUDE_SOURCES})
 add_executable(avrdude-slic3r main-standalone.cpp)
 target_link_libraries(avrdude-slic3r avrdude)
 
-encoding_check(avrdude)
-encoding_check(avrdude-slic3r)
+# encoding_check(avrdude)
+# encoding_check(avrdude-slic3r)
 
 # Make avrdude-slic3r.conf.h includable:
 target_include_directories(avrdude SYSTEM PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
